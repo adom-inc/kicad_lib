@@ -1,0 +1,17 @@
+[package]
+name = "kicad_format"
+version = "0.1.0"
+edition = "2021"
+description = "A library for parsing KiCad 7.10 files into a more data driven representation"
+authors = ["Adrian Wowk <adrian@adom.inc>"]
+license = "MIT"
+
+[dependencies]
+kicad_sexpr = { path = "../kicad_sexpr" }
+regex = "1.10.3"
+thiserror = "1.0.56"
+uuid = { version = "1.7.0", features = ["v4", "fast-rng"] }
+
+[dev-dependencies]
+ansi_term = "0.12.1"
+diff = "0.1.13"

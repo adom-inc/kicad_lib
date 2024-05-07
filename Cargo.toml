@@ -1,0 +1,3 @@
+[workspace]
+members = ["kicad_sexpr", "kicad_format"]
+resolver = "2"
