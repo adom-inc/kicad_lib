@@ -266,7 +266,7 @@ impl ToSexpr for StackupLayer {
 /// layers (i.e. FR4)
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
-#[cfg_attr(feature = "serde", serde(tag = "type"))]
+#[cfg_attr(feature = "serde", serde(tag = "type", content = "value"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum StackupLayerId {
     BoardLayer(LayerId),
