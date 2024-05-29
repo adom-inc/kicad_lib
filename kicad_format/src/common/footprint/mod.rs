@@ -26,6 +26,8 @@ pub mod text;
 /// A footprint inlined within a PCB file.
 ///
 /// TODO: move to pcb module
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintInlined {
     pub library_link: LibraryId,
@@ -299,6 +301,8 @@ impl ToSexpr for FootprintInlined {
 // ############################################################################
 
 /// How pads are covered by copper in Zone
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 #[repr(u8)]
 pub enum ZoneConnectKind {
@@ -331,6 +335,8 @@ impl TryFrom<u8> for ZoneConnectKind {
 // ############################################################################
 
 /// Attributes of the footprint (ex. SMD, through-hole, included in BOM, etc.)
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct FootprintAttributes {
     pub smd: bool,
@@ -395,6 +401,9 @@ impl ToSexpr for FootprintAttributes {
 
 /// All the types of graphics items that can be part of a footprint (images,
 /// text, text boxes, shapes, etc.)
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum FootprintGraphicsItem {
     Image(Image),
@@ -462,6 +471,8 @@ impl ToSexpr for FootprintGraphicsItem {
 // ############################################################################
 
 /// A 3D model associated with a footprint.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Model {
     pub file: String,

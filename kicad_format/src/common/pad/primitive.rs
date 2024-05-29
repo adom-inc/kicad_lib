@@ -8,12 +8,17 @@ use crate::{
     simple_to_from_string, KiCadParseError,
 };
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadGraphicsPrimitive {
     pub kind: PadGraphicsPrimitiveKind,
     pub width: f32,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum PadGraphicsPrimitiveKind {
     Line(PadLine),
@@ -229,12 +234,16 @@ impl ToSexpr for PadGraphicsPrimitive {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadLine {
     pub start: Vec2D,
     pub end: Vec2D,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadRectangle {
     pub start: Vec2D,
@@ -242,6 +251,8 @@ pub struct PadRectangle {
     pub fill: PrimitiveFillMode,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadAnnotationBoundingBox {
     pub start: Vec2D,
@@ -249,6 +260,8 @@ pub struct PadAnnotationBoundingBox {
     pub fill: PrimitiveFillMode,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadCircle {
     pub center: Vec2D,
@@ -256,6 +269,8 @@ pub struct PadCircle {
     pub fill: PrimitiveFillMode,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadArc {
     pub start: Vec2D,
@@ -263,17 +278,23 @@ pub struct PadArc {
     pub end: Vec2D,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadPolygon {
     pub points: CoordinatePointList,
     pub fill: PrimitiveFillMode,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadBezier {
     pub points: [Vec2D; 4],
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PrimitiveFillMode {
     Solid,

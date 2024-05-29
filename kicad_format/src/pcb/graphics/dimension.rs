@@ -11,6 +11,8 @@ use super::text::PcbText;
 /// The `dimension` token defines a dimension object.
 ///
 /// https://dev-docs.kicad.org/en/file-formats/sexpr-intro/#_dimension
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PcbDimension {
     /// The optional `locked` token specifies if the dimension can be moved.
@@ -58,6 +60,8 @@ impl ToSexpr for PcbDimension {
 }
 
 /// See `kind` field in [`Dimension`].
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum DimensionKind {
     Aligned,
@@ -67,6 +71,8 @@ pub enum DimensionKind {
     Radial,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct DimensionFormat {
     /// The optional `prefix` token attribute defines the string to add to the
@@ -105,8 +111,10 @@ pub struct DimensionFormat {
 }
 
 /// See `units` field in [`DimensionUnits`].
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum DimensionUnits {
     Inches = 0,
     /// Thousandths of an inch
@@ -116,8 +124,10 @@ pub enum DimensionUnits {
 }
 
 /// See `units_format` field in [`DimensionFormat`].
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum DimensionUnitsFormat {
     NoSuffix = 0,
     BareSuffix = 1,
@@ -125,6 +135,8 @@ pub enum DimensionUnitsFormat {
 }
 
 /// https://dev-docs.kicad.org/en/file-formats/sexpr-intro/#_dimension_style
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct DimensionStyle {
     /// The `thickness` token attribute defines the line thickness of the
@@ -161,8 +173,10 @@ pub struct DimensionStyle {
 }
 
 /// See `text_position_mode` field in [`DimensionStyle`].
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum DimensionTextPositionMode {
     Outside = 0,
     Inline = 1,
@@ -170,8 +184,10 @@ pub enum DimensionTextPositionMode {
 }
 
 /// See `text_frame` field in [`DimensionStyle`].
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum TextFrameKind {
     NoFrame = 0,
     Rectangle = 1,

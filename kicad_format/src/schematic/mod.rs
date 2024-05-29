@@ -21,6 +21,8 @@ use self::{sheet::Sheet, symbol::Symbol};
 pub mod sheet;
 pub mod symbol;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SheetPinShape {
     Unspecified,
@@ -47,6 +49,8 @@ simple_to_from_string! {
     rectangle <-> Rectangle,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SchematicFile {
     pub version: u32,
@@ -181,6 +185,8 @@ impl ToSexpr for SchematicFile {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct BusAlias {
     pub name: String,
@@ -227,6 +233,8 @@ impl ToSexpr for BusAlias {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Junction {
     pub position: Position,
@@ -271,6 +279,8 @@ impl ToSexpr for Junction {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct NoConnect {
     pub position: Position,
@@ -301,6 +311,8 @@ impl ToSexpr for NoConnect {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct BusEntry {
     pub position: Position,
@@ -346,6 +358,8 @@ impl ToSexpr for BusEntry {
 }
 
 /// Wires, Buses, or PolyLines
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SchematicLine {
     pub kind: SchematicLineKind,
@@ -394,6 +408,8 @@ impl ToSexpr for SchematicLine {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum SchematicLineKind {
     Wire,
@@ -408,6 +424,8 @@ simple_to_from_string! {
     polyline <-> PolyLine,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SchematicTextBox {
     pub text: String,
@@ -464,6 +482,8 @@ impl ToSexpr for SchematicTextBox {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SchematicText {
     pub text: String,
@@ -508,6 +528,8 @@ impl ToSexpr for SchematicText {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct LocalLabel {
     pub text: String,
@@ -564,6 +586,8 @@ impl ToSexpr for LocalLabel {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct GlobalLabel {
     pub text: String,
@@ -627,6 +651,8 @@ impl ToSexpr for GlobalLabel {
 }
 
 // TODO: This is a duplicate of the GlobalLabel struct. It should be refactored to use the same struct.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct HierarchicalLabel {
     pub text: String,
@@ -689,6 +715,8 @@ impl ToSexpr for HierarchicalLabel {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SchematicSheetInstance {
     pub path: String,

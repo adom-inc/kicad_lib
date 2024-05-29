@@ -15,8 +15,8 @@ use crate::{
 use super::{Color, CoordinatePointList, Stroke, Uuid, Vec2D};
 
 /// Common properties shared by the different shapes.
-///
-
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Shape {
     pub private: bool,
@@ -26,6 +26,9 @@ pub struct Shape {
     pub uuid: Option<Uuid>,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum ShapeKind {
     Arc(Arc),
@@ -154,6 +157,8 @@ impl ToSexpr for Shape {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Arc {
     pub start: Vec2D,
@@ -161,29 +166,40 @@ pub struct Arc {
     pub end: Vec2D,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Circle {
     pub center: Vec2D,
     pub radius: f32,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Rectangle {
     pub start: Vec2D,
     pub end: Vec2D,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Bezier {
     pub points: [Vec2D; 4],
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PolyLine {
     pub points: CoordinatePointList,
 }
 
 /// The mode to use when filling in the shape
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Default, Clone)]
 pub enum ShapeFillMode {
     /// Graphic item not filled.

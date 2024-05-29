@@ -20,6 +20,8 @@ use crate::{
 /// Not to be confused with [`LibSymbol`](crate::common::symbol::LibSymbol),
 /// [`DerivedLibSymbol`](crate::symbol_library::DerivedLibSymbol), or
 /// [`LibSymbolSubUnit`](crate::common::symbol::LibSymbolSubUnit).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Symbol {
     pub lib_name: Option<String>,
@@ -134,6 +136,8 @@ impl ToSexpr for Symbol {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Mirror {
     pub x: bool,
@@ -167,8 +171,10 @@ impl ToSexpr for Mirror {
     }
 }
 
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum SymbolConversion {
     Base = 1,
     Demorgan = 2,
@@ -188,6 +194,8 @@ impl TryFrom<u8> for SymbolConversion {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pin {
     pub number: String,
@@ -230,6 +238,8 @@ impl ToSexpr for Pin {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SymbolInstanceProject {
     pub project: String,
@@ -265,6 +275,8 @@ impl ToSexpr for SymbolInstanceProject {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SymbolInstance {
     pub path: String,

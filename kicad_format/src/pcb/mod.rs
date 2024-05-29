@@ -26,6 +26,8 @@ pub mod graphics;
 pub mod setup;
 
 /// A PCB board file (`.kicad_pcb` file).
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PcbFile {
     pub version: u32,
@@ -355,6 +357,8 @@ impl ToSexpr for PcbFile {
 // ############################################################################
 
 /// General board settings. Currently only holds the board thickness.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct GeneralSettings {
     pub thickness: f32,
@@ -389,6 +393,8 @@ impl ToSexpr for GeneralSettings {
 /// ```text
 /// (0 "F.Cu" signal ["Front Copper"])
 /// ```
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct BoardLayer {
     pub layer: LayerId,
@@ -441,6 +447,8 @@ impl ToSexpr for BoardLayer {
 ///
 /// Only copper layers can be `Signal`, `Power`, `Mixed`, or `Jumper`. All
 /// other layers should be the `User` type.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Default, Copy, Clone)]
 pub enum BoardLayerKind {
     #[default]
@@ -463,6 +471,9 @@ simple_to_from_string! {
 // ############################################################################
 
 /// Different types of tracks on the PCB.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum Track {
     Segment(TrackSegment),
@@ -508,6 +519,8 @@ impl ToSexpr for Track {
 }
 
 /// The simplest form of a track, a straight line segment.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct TrackSegment {
     pub locked: bool,
@@ -565,6 +578,8 @@ impl ToSexpr for TrackSegment {
 }
 
 /// A via, a hole in the PCB that connects two layers.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct TrackVia {
     pub kind: ViaKind,
@@ -686,6 +701,8 @@ impl ToSexpr for TrackVia {
 }
 
 /// The type of via, which determines which layers it can connect.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Default, Clone, Copy)]
 pub enum ViaKind {
     /// Always a through hole via
@@ -706,6 +723,8 @@ simple_to_from_string! {
 }
 
 /// An arc, a curved track on the PCB.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct TrackArc {
     pub locked: bool,

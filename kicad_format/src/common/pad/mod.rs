@@ -14,6 +14,8 @@ use crate::{
 pub mod primitive;
 
 /// A footprint pad
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pad {
     pub index: String,
@@ -256,6 +258,8 @@ impl ToSexpr for Pad {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PadKind {
     ThroughHole,
@@ -272,6 +276,8 @@ simple_to_from_string! {
     np_thru_hole <-> NpThroughHole,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PadShape {
     Circle,
@@ -292,6 +298,8 @@ simple_to_from_string! {
     custom <-> Custom,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Drill {
     pub diameter: f32,
@@ -342,6 +350,8 @@ impl ToSexpr for Drill {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PadProperty {
     Bga,
@@ -362,6 +372,8 @@ simple_to_from_string! {
     pad_prop_castellated <-> Castellated,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Chamfer {
     pub top_left: bool,
@@ -406,6 +418,8 @@ impl ToSexpr for Chamfer {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Net {
     pub code: i32,
@@ -439,6 +453,8 @@ impl ToSexpr for Net {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct CustomPadOptions {
     pub clearance: CustomPadClearanceKind,
@@ -476,6 +492,8 @@ impl ToSexpr for CustomPadOptions {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum CustomPadClearanceKind {
     Outline,
@@ -488,6 +506,8 @@ simple_to_from_string! {
     convexhull <-> ConvexHull,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum CustomPadAnchorShape {
     Rect,

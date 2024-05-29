@@ -19,6 +19,8 @@ use super::{
     Position, Stroke, TextEffects, Vec2D,
 };
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct LibSymbol {
     pub id: LibraryId,
@@ -91,6 +93,9 @@ impl ToSexpr for LibSymbol {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct LibSymbolSubUnit {
     pub id: UnitId,
@@ -142,6 +147,8 @@ impl ToSexpr for LibSymbolSubUnit {
 
 // ############################################################################
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 pub struct LibraryId {
     pub library_nickname: Option<String>,
@@ -234,6 +241,8 @@ mod lib_id_tests {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct UnitId {
     pub parent: String,
@@ -311,6 +320,8 @@ mod unit_id_tests {
 // ############################################################################
 
 /// See `pin_names` in [`LibSymbol`].
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PinNames {
     pub offset: Option<f32>,
@@ -353,6 +364,8 @@ impl ToSexpr for PinNames {
 /// TODO: rename to "field" as used in the kicad codebase?
 ///
 /// https://dev-docs.kicad.org/en/file-formats/sexpr-intro/#_symbol_properties
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SymbolProperty {
     /// The "KEY" string defines the name of the property and must be unique.
@@ -419,6 +432,9 @@ impl ToSexpr for SymbolProperty {
 /// definitions.
 ///
 /// https://dev-docs.kicad.org/en/file-formats/sexpr-intro/#_symbol_graphic_items
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum LibSymbolGraphicsItem {
     Shape(Shape),
@@ -475,6 +491,8 @@ impl ToSexpr for LibSymbolGraphicsItem {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct LibSymbolText {
     pub private: bool,
@@ -518,6 +536,8 @@ impl ToSexpr for LibSymbolText {
 }
 
 /// UNDOCUMENTED
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct LibSymbolTextBox {
     pub private: bool,
@@ -577,6 +597,8 @@ impl ToSexpr for LibSymbolTextBox {
 /// The pin token defines a pin in a symbol definition.
 ///
 /// https://dev-docs.kicad.org/en/file-formats/sexpr-intro/#_symbol_pin
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Pin {
     /// The `PIN_ELECTRICAL_TYPE` defines the pin electrical connection. See
@@ -687,6 +709,8 @@ impl ToSexpr for Pin {
 }
 
 /// See `electrical_kind` in [`Pin`].
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy, Default)]
 pub enum PinElectricalKind {
     /// Pin is an input.
@@ -733,6 +757,8 @@ simple_to_from_string! {
 }
 
 /// See `graphical_style` in [`Pin`].
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy, Default)]
 pub enum PinGraphicalStyle {
     #[default]
@@ -760,6 +786,8 @@ simple_to_from_string! {
     non_logic <-> NonLogic,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PinAlternate {
     pub name: String,

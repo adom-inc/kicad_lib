@@ -10,6 +10,8 @@ use crate::{
 
 /// Stores a collection of symbols which may or may not be derived from other
 /// symbols within the library
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct SymbolLibraryFile {
     /// The `version` token attribute defines the symbol library version using
@@ -56,6 +58,9 @@ impl ToSexpr for SymbolLibraryFile {
 }
 
 /// A symbol definition can be a root symbol or a derived symbol
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum SymbolDefinition {
     RootSymbol(LibSymbol),
@@ -98,6 +103,8 @@ impl ToSexpr for SymbolDefinition {
 
 /// A symbol which has been derived from another (root) symbol within the
 /// library
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct DerivedLibSymbol {
     pub id: LibraryId,

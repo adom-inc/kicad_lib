@@ -6,6 +6,8 @@ use crate::{
     KiCadParseError,
 };
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PcbText {
     pub locked: bool,
@@ -78,6 +80,8 @@ impl ToSexpr for PcbText {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PcbTextBox {
     pub locked: bool,
@@ -189,6 +193,8 @@ impl ToSexpr for PcbTextBox {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum TextBoxPosition {
     StartEnd(Vec2D, Vec2D),

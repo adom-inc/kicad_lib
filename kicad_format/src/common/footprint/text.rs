@@ -9,6 +9,8 @@ use crate::{
 };
 
 /// A footprint text element.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintText {
     pub kind: FootprintTextKind,
@@ -81,6 +83,8 @@ impl ToSexpr for FootprintText {
 ///
 /// Reference and value always live on silkscreen (on the footprint side);
 /// other texts are planned to go on whatever layer the user wants.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FootprintTextKind {
     Reference,
@@ -97,6 +101,8 @@ simple_to_from_string! {
 
 /// An extension of the normal [`Position`](crate::common::Position) struct that includes an `unlocked`
 /// field
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintTextPosition {
     pub x: f32,
@@ -140,6 +146,8 @@ impl ToSexpr for FootprintTextPosition {
 // FIXME: Really should be an enum because there are 2 valid types of text boxes
 // (axis aligned and partially rotated)
 /// A footprint text box element.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintTextBox {
     pub locked: bool,

@@ -9,6 +9,8 @@ use crate::{
 };
 
 /// Common properties shared by the different shapes.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintShape {
     pub locked: bool,
@@ -19,6 +21,9 @@ pub struct FootprintShape {
 }
 
 /// All the different types of shapes allowed within a footprint.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum FootprintShapeKind {
     Line(FootprintLine),
@@ -221,12 +226,16 @@ impl ToSexpr for FootprintShape {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintLine {
     pub start: Vec2D,
     pub end: Vec2D,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintRectangle {
     pub start: Vec2D,
@@ -234,6 +243,8 @@ pub struct FootprintRectangle {
     pub fill: SimpleFillMode,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintCircle {
     pub center: Vec2D,
@@ -241,6 +252,8 @@ pub struct FootprintCircle {
     pub fill: SimpleFillMode,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintArc {
     pub start: Vec2D,
@@ -248,12 +261,16 @@ pub struct FootprintArc {
     pub end: Vec2D,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintPolygon {
     pub points: CoordinatePointList,
     pub fill: SimpleFillMode,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintBezier {
     pub points: [Vec2D; 4],

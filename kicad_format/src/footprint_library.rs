@@ -20,6 +20,8 @@ use crate::{
 /// that footprints a footprint library file include a file header, and omit
 /// several attributes such as the footprint position, rotation, and locked
 /// status.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintLibraryFile {
     pub name: String,

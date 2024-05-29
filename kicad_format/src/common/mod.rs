@@ -19,6 +19,8 @@ pub mod symbol;
 pub mod zone;
 
 /// Generic position type used in many parts of the format.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Position {
     /// The `X` attribute defines the horizontal position of the object.
@@ -87,6 +89,8 @@ impl ToSexpr for CoordinatePointList {
 }
 
 /// A single coordinate pair
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Vec2D {
     pub x: f32,
@@ -144,6 +148,8 @@ impl ToSexprWithName for Vec2D {
 // ############################################################################
 
 /// A single 3D coordinate pair
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Vec3D {
     pub x: f32,
@@ -196,6 +202,8 @@ impl ToSexprWithName for Vec3D {
 ///
 /// Used for various graphical objects such as lines, arcs, circles, polygons,
 /// and text.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Default, Clone)]
 pub struct Stroke {
     /// The `width` token attribute defines the line width of the graphic object.
@@ -260,6 +268,8 @@ impl ToSexpr for Stroke {
 }
 
 /// Defines the possible stroke line styles.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy, Default)]
 pub enum StrokeKind {
     #[default]
@@ -282,6 +292,8 @@ simple_to_from_string! {
 }
 
 /// An RGBA color
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Color {
     pub red: u8,
@@ -330,6 +342,8 @@ impl ToSexpr for Color {
 
 /// All text objects can have an optional effects section that defines how the
 /// text is displayed.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct TextEffects {
     /// The `font` token attributes define how the text is shown.
@@ -415,6 +429,8 @@ impl ToSexpr for TextEffects {
 }
 
 /// A font definition for text objects.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Font {
     /// The optional face token indicates the font family. It should be a
@@ -484,6 +500,8 @@ impl ToSexpr for Font {
 }
 
 /// Text justification options.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Justify {
     pub horizontal_direction: Option<HorizontalDirection>,
@@ -530,6 +548,8 @@ impl ToSexpr for Justify {
 }
 
 /// See the `horizontal_direction` field in [`Justify`].
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum HorizontalDirection {
     Left,
@@ -543,6 +563,8 @@ simple_to_from_string! {
 }
 
 /// See the `vertical_direction` field in [`Justify`].
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum VerticalDirection {
     Top,
@@ -558,6 +580,8 @@ simple_to_from_string! {
 // ############################################################################
 
 /// Defines the drawing page size and orientation.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PageSettings {
     pub size: PageSize,
@@ -611,6 +635,9 @@ impl ToSexpr for PageSettings {
 }
 
 /// The page size definition can either be a standard size or a custom size.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum PageSize {
     Standard(StandardPageSize),
@@ -618,6 +645,8 @@ pub enum PageSize {
 }
 
 /// All the preset standard page sizes
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum StandardPageSize {
     A0,
@@ -657,6 +686,8 @@ simple_to_from_string! {
 }
 
 /// A custom page size definition.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct CustomPageSize {
     pub width: f32,
@@ -666,6 +697,8 @@ pub struct CustomPageSize {
 // ############################################################################
 
 /// Title block information displayed in the corner of the page
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct TitleBlock {
     /// The `title` token attribute is a quoted string that defines the
@@ -736,6 +769,8 @@ impl ToSexpr for TitleBlock {
 }
 
 /// A comment within the [`TitleBlock`].
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Comment {
     pub index: u8,
@@ -772,6 +807,8 @@ impl ToSexpr for Comment {
 // ############################################################################
 
 /// A generic property key-value pair.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Property {
     /// The property key attribute is a string that defines the name of the
@@ -813,6 +850,8 @@ impl ToSexpr for Property {
 /// although that is an artifact of the legacy file format).
 ///
 /// TODO: replace with just uuid::Uuid
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Uuid(
     /// The UUID attribute is a Version 4 (random) UUID that should be globally
@@ -822,6 +861,7 @@ pub struct Uuid(
     ///
     /// Files converted from legacy versions of KiCad (prior to 6.0) have their
     ///  locally-unique timestamps re-encoded in UUID format.
+    #[cfg_attr(feature = "serde", serde(with = "uuid::serde::simple"))]
     pub uuid::Uuid,
 );
 
@@ -891,6 +931,8 @@ impl From<Uuid> for uuid::Uuid {
 // ############################################################################
 
 /// An embedded bitmap image stored in Base64 encoded PNG format.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Image {
     /// The POSITION_IDENTIFIER defines the X and Y coordinates of the image.
@@ -969,6 +1011,9 @@ impl ToSexpr for Image {
 /// the wildcard. For instance, *.Cu represents all of the copper layers. This
 /// only applies to canonical layers names.
 #[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum LayerId {
     FCu,
@@ -1236,6 +1281,8 @@ impl From<LayerId> for String {
 // ############################################################################
 
 /// A group of items represented by a list of unique identifiers.
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Group {
     /// The name attribute defines the name of the group.
@@ -1309,6 +1356,8 @@ impl ToSexpr for Group {
 // ############################################################################
 
 /// The fill mode used by most solid shapes
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum SimpleFillMode {
     Solid,

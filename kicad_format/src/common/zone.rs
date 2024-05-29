@@ -11,6 +11,8 @@ use crate::{
 
 use super::{CoordinatePointList, LayerId, Uuid};
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Zone {
     pub locked: bool,
@@ -200,6 +202,8 @@ impl ToSexpr for Zone {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct Hatch {
     pub style: HatchStyle,
@@ -231,6 +235,8 @@ impl ToSexpr for Hatch {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum HatchStyle {
     None,
@@ -245,6 +251,8 @@ simple_to_from_string! {
     full <-> Full,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum TearDropKind {
     PadVia,
@@ -257,6 +265,8 @@ simple_to_from_string! {
     track_end <-> TrackEnd,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PadConnection {
     pub kind: Option<PadConnectionKind>,
@@ -291,6 +301,8 @@ impl ToSexpr for PadConnection {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum PadConnectionKind {
     ThruHoleOnly,
@@ -305,6 +317,8 @@ simple_to_from_string! {
     no <-> No,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct KeepOutSettings {
     pub tracks: KeepOut,
@@ -353,6 +367,8 @@ impl ToSexpr for KeepOutSettings {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum KeepOut {
     Allowed,
@@ -365,6 +381,8 @@ simple_to_from_string! {
     not_allowed <-> NotAllowed,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FillSettings {
     pub filled: bool,
@@ -481,6 +499,8 @@ impl ToSexpr for FillSettings {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum ZoneFillMode {
     Solid,
@@ -493,6 +513,8 @@ simple_to_from_string! {
     hatch <-> Hatched,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum FillSmoothingStyle {
     Chamfer,
@@ -505,8 +527,10 @@ simple_to_from_string! {
     fillet <-> Fillet,
 }
 
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum FillIslandRemovalMode {
     AlwaysRemoveIslands = 0,
     NeverRemoveIslands = 1,
@@ -526,8 +550,10 @@ impl TryFrom<u8> for FillIslandRemovalMode {
     }
 }
 
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum HatchSmoothingLevel {
     NoSmoothing = 0,
     Fillet = 1,
@@ -553,6 +579,8 @@ impl TryFrom<u8> for HatchSmoothingLevel {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
 pub enum HatchBorderAlgorithm {
     UseHatchThickness,
@@ -565,6 +593,8 @@ simple_to_from_string! {
     min_thickness <-> UseZoneMinimumThickness,
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FilledPolygon {
     pub layer: LayerId,
@@ -607,6 +637,8 @@ impl ToSexpr for FilledPolygon {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct FilledSegments {
     pub layer: LayerId,

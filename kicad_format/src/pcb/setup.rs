@@ -12,6 +12,8 @@ use crate::{
 
 /// Properties of the PCB such as physical layer stackup, clearances, origins,
 /// and plot options
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct BoardSetup {
     pub stackup: Option<BoardStackup>,
@@ -99,6 +101,8 @@ impl ToSexpr for BoardSetup {
 // ############################################################################
 
 /// The physical layer stackup of the PCB
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct BoardStackup {
     pub layers: Vec<StackupLayer>,
@@ -193,6 +197,8 @@ impl ToSexpr for BoardStackup {
 /// FIXME: Intentionally not supporting the `locked` token within the
 /// `thickness` token attribute because it's not common and I dont feel like
 /// parsing that :)
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct StackupLayer {
     pub id: StackupLayerId,
@@ -258,6 +264,9 @@ impl ToSexpr for StackupLayer {
 
 /// Layers in the board stackup are either defined board layers or dielectric
 /// layers (i.e. FR4)
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum StackupLayerId {
     BoardLayer(LayerId),
@@ -297,6 +306,8 @@ impl ToSexpr for StackupLayerId {
     }
 }
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum EdgeConnectorConstraints {
     /// No edge connector in board
@@ -317,6 +328,8 @@ simple_to_from_string! {
 // ############################################################################
 
 /// Large field of settings that control how the PCB is plotted
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct PcbPlotOptions {
     /// Set of layers to plot
@@ -662,8 +675,10 @@ fn assemble_bit_field(bit_field: u64) -> String {
     format!("0x{:0>7x}_{:0>8x}", high, low)
 }
 
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum OutlineMode {
     Sketch = 0,
     Filled = 1,
@@ -685,8 +700,10 @@ impl TryFrom<u8> for OutlineMode {
     }
 }
 
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)]
 pub enum PlotFormat {
     Hpgl = 0,
     Gerber = 1,
@@ -716,8 +733,10 @@ impl TryFrom<u8> for PlotFormat {
     }
 }
 
-#[repr(u8)]
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
+#[repr(u8)] 
 pub enum DrillMarks {
     No = 0,
     Small = 1,

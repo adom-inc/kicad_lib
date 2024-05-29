@@ -18,6 +18,9 @@ use super::string::parse_string;
 
 pub type SexprList = Vec<Sexpr>;
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub enum Sexpr {
     List(SexprList),
