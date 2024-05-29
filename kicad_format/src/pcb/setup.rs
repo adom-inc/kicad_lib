@@ -736,7 +736,7 @@ impl TryFrom<u8> for PlotFormat {
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone, Copy)]
-#[repr(u8)] 
+#[repr(u8)]
 pub enum DrillMarks {
     No = 0,
     Small = 1,
