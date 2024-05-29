@@ -95,7 +95,6 @@ impl ToSexpr for LibSymbol {
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
-#[cfg_attr(feature = "serde", serde(tag = "type"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct LibSymbolSubUnit {
     pub id: UnitId,
