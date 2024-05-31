@@ -193,19 +193,6 @@ impl Parser {
         }
     }
 
-    pub fn expect_alt_bool_with_name(&mut self, name: &str) -> Result<bool, KiCadParseError> {
-        let result = self.expect_symbol_with_name(name)?;
-
-        match result.as_str() {
-            "true" => Ok(true),
-            "false" => Ok(false),
-            _ => Err(KiCadParseError::InvalidEnumValue {
-                value: result,
-                enum_name: "bool",
-            }),
-        }
-    }
-
     /// Expects the end of the list.
     pub fn expect_end(mut self) -> Result<(), KiCadParseError> {
         if let Some(next) = self.inner.next() {

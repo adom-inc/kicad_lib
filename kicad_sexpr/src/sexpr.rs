@@ -188,10 +188,6 @@ impl Sexpr {
     pub fn bool_with_name(name: impl Into<String>, value: bool) -> Self {
         Self::symbol_with_name(name, if value { "yes" } else { "no" })
     }
-
-    pub fn alt_bool_with_name(name: impl Into<String>, value: bool) -> Self {
-        Self::symbol_with_name(name, if value { "true" } else { "false" })
-    }
 }
 
 #[derive(Debug, Error, PartialEq, Clone)]

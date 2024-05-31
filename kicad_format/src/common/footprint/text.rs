@@ -14,14 +14,14 @@ use crate::{
 #[derive(Debug, PartialEq, Clone)]
 pub struct FootprintText {
     pub kind: FootprintTextKind,
-    pub locked: bool,
     pub text: String,
     pub position: FootprintTextPosition,
+    pub unlocked: bool,
     pub layer: LayerId,
     pub knockout: bool,
     pub hide: bool,
+    pub uuid: Uuid,
     pub effects: TextEffects,
-    pub tstamp: Uuid,
 }
 
 impl FromSexpr for FootprintText {
@@ -29,28 +29,46 @@ impl FromSexpr for FootprintText {
         parser.expect_symbol_matching("fp_text")?;
 
         let kind = parser.expect_symbol()?.parse()?;
-        let locked = parser.maybe_symbol_matching("locked");
         let text = parser.expect_string()?;
         let position = parser.expect::<FootprintTextPosition>()?;
+        let unlocked = parser
+            .maybe_list_with_name("unlocked")
+            .map(|mut p| {
+                p.expect_symbol_matching("yes")?;
+                p.expect_end()?;
+
+                Ok::<_, KiCadParseError>(())
+            })
+            .transpose()?
+            .is_some();
         let (layer, knockout) = parser.expect_list_with_name("layer").and_then(|mut list| {
             let layer = list.expect_string()?.parse()?;
             let knockout = list.maybe_symbol_matching("knockout");
             Ok((layer, knockout))
         })?;
-        let hide = parser.maybe_symbol_matching("hide");
+        let hide = parser
+            .maybe_list_with_name("hide")
+            .map(|mut p| {
+                p.expect_symbol_matching("yes")?;
+                p.expect_end()?;
+
+                Ok::<_, KiCadParseError>(())
+            })
+            .transpose()?
+            .is_some();
+        let uuid = parser.expect::<Uuid>()?;
         let effects = parser.expect::<TextEffects>()?;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
 
         Ok(Self {
             kind,
-            locked,
             text,
             position,
+            unlocked,
             layer,
             knockout,
             hide,
+            uuid,
             effects,
-            tstamp,
         })
     }
 }
@@ -61,9 +79,10 @@ impl ToSexpr for FootprintText {
             "fp_text",
             [
                 Some(Sexpr::symbol(self.kind)),
-                self.locked.then(|| Sexpr::symbol("locked")),
                 Some(Sexpr::string(&self.text)),
                 Some(self.position.to_sexpr()),
+                self.unlocked
+                    .then(|| Sexpr::symbol_with_name("unlocked", "yes")),
                 Some(Sexpr::list_with_name(
                     "layer",
                     [
@@ -71,9 +90,9 @@ impl ToSexpr for FootprintText {
                         self.knockout.then(|| Sexpr::symbol("knockout")),
                     ],
                 )),
-                self.hide.then(|| Sexpr::symbol("hide")),
+                self.hide.then(|| Sexpr::symbol_with_name("hide", "yes")),
+                Some(self.uuid.to_sexpr()),
                 Some(self.effects.to_sexpr()),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
             ],
         )
     }
@@ -157,7 +176,7 @@ pub struct FootprintTextBox {
     pub points: Option<[Vec2D; 4]>,
     pub angle: Option<f32>,
     pub layer: LayerId,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
     pub effects: TextEffects,
     pub stroke: Option<Stroke>,
 }
@@ -182,7 +201,7 @@ impl FromSexpr for FootprintTextBox {
             .transpose()?;
         let angle = parser.maybe_number_with_name("angle")?;
         let layer = parser.expect_string_with_name("layer")?.parse()?;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
         let effects = parser.expect::<TextEffects>()?;
         let stroke = parser.maybe::<Stroke>()?;
 
@@ -206,7 +225,7 @@ impl FromSexpr for FootprintTextBox {
             points,
             angle,
             layer,
-            tstamp,
+            uuid,
             effects,
             stroke,
         })
@@ -225,7 +244,7 @@ impl ToSexpr for FootprintTextBox {
                 self.points.as_ref().map(|v| v.to_vec().to_sexpr()),
                 self.angle.map(|n| Sexpr::number_with_name("angle", n)),
                 Some(Sexpr::string_with_name("layer", self.layer)),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.uuid.to_sexpr()),
                 Some(self.effects.to_sexpr()),
                 self.stroke.as_ref().map(ToSexpr::to_sexpr),
             ],

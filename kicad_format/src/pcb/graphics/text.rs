@@ -15,7 +15,7 @@ pub struct PcbText {
     pub position: Position,
     pub layer: LayerId,
     pub knockout: bool,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
     pub effects: TextEffects,
 }
 
@@ -31,7 +31,7 @@ impl FromSexpr for PcbText {
             let knockout = list.maybe_symbol_matching("knockout");
             Ok((layer, knockout))
         })?;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
         let effects = parser.expect::<TextEffects>()?;
 
         if parser
@@ -52,7 +52,7 @@ impl FromSexpr for PcbText {
             position,
             layer,
             knockout,
-            tstamp,
+            uuid,
             effects,
         })
     }
@@ -73,7 +73,7 @@ impl ToSexpr for PcbText {
                         self.knockout.then(|| Sexpr::symbol("knockout")),
                     ],
                 )),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.uuid.to_sexpr()),
                 Some(self.effects.to_sexpr()),
             ],
         )
@@ -89,7 +89,7 @@ pub struct PcbTextBox {
     pub position: TextBoxPosition,
     pub angle: Option<f32>,
     pub layer: LayerId,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
     pub effects: TextEffects,
     pub stroke: Option<Stroke>,
 }
@@ -135,7 +135,7 @@ impl FromSexpr for PcbTextBox {
 
         let angle = parser.maybe_number_with_name("angle")?;
         let layer = parser.expect_string()?.parse::<LayerId>()?;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
         let effects = parser.expect::<TextEffects>()?;
         let stroke = parser.maybe::<Stroke>()?;
 
@@ -157,7 +157,7 @@ impl FromSexpr for PcbTextBox {
             position,
             angle,
             layer,
-            tstamp,
+            uuid,
             effects,
             stroke,
         })
@@ -183,7 +183,7 @@ impl ToSexpr for PcbTextBox {
                 &[
                     self.angle.map(|a| Sexpr::number_with_name("angle", a)),
                     Some(Sexpr::string(self.layer)),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                    Some(self.uuid.to_sexpr()),
                     Some(self.effects.to_sexpr()),
                     self.stroke.as_ref().map(ToSexpr::to_sexpr),
                 ][..],

@@ -9,13 +9,11 @@ use self::{
     text::{FootprintText, FootprintTextBox},
 };
 use super::{
-    pad::Pad, symbol::LibraryId, zone::Zone, Group, Image, LayerId, Position, Property, Uuid, Vec3D,
+    pad::Pad, symbol::LibraryId, zone::Zone, Group, Image, LayerId, Position, TextEffects, Uuid,
+    Vec3D,
 };
 use crate::{
-    convert::{
-        FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName,
-        VecToMaybeSexprVec,
-    },
+    convert::{FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, VecToMaybeSexprVec},
     footprint_library::FootprintLibraryFile,
     simple_maybe_from_sexpr, KiCadParseError, SexprKind,
 };
@@ -34,12 +32,14 @@ pub struct FootprintInlined {
     pub locked: bool,
     pub placed: bool,
     pub layer: LayerId,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
     pub position: Position,
     pub description: Option<String>,
     pub tags: Option<String>,
-    pub properties: Vec<Property>,
+    pub properties: Vec<FootprintProperty>,
     pub path: Option<String>,
+    pub sheet_name: Option<String>,
+    pub sheet_file: Option<String>,
     pub solder_mask_margin: Option<f32>,
     pub solder_paste_margin: Option<f32>,
     pub solder_paste_ratio: Option<f32>,
@@ -58,7 +58,7 @@ pub struct FootprintInlined {
 impl FootprintInlined {
     /// Updates and inlined footprint from a footprint library file.
     ///
-    /// This function does not update the library link, locked, placed, tstamp,
+    /// This function does not update the library link, locked, placed, uuid,
     /// position, properties, path, or fp_text/fp_text_box fields.
     pub fn update_from_library(&mut self, footprint_library_file: &FootprintLibraryFile) {
         self.layer = footprint_library_file.layer;
@@ -157,12 +157,14 @@ impl FromSexpr for FootprintInlined {
         let locked = parser.maybe_symbol_matching("locked");
         let placed = parser.maybe_symbol_matching("placed");
         let layer = parser.expect_string_with_name("layer")?.parse()?;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
         let position = parser.expect::<Position>()?;
         let description = parser.maybe_string_with_name("descr")?;
         let tags = parser.maybe_string_with_name("tags")?;
-        let properties = parser.expect_many::<Property>()?;
+        let properties = parser.expect_many::<FootprintProperty>()?;
         let path = parser.maybe_string_with_name("path")?;
+        let sheet_name = parser.maybe_string_with_name("sheetname")?;
+        let sheet_file = parser.maybe_string_with_name("sheetfile")?;
         let solder_mask_margin = parser.maybe_number_with_name("solder_mask_margin")?;
         let solder_paste_margin = parser.maybe_number_with_name("solder_paste_margin")?;
         let solder_paste_ratio = parser.maybe_number_with_name("solder_paste_ratio")?;
@@ -206,12 +208,14 @@ impl FromSexpr for FootprintInlined {
             locked,
             placed,
             layer,
-            tstamp,
+            uuid,
             position,
             description,
             tags,
             properties,
             path,
+            sheet_name,
+            sheet_file,
             solder_mask_margin,
             solder_paste_margin,
             solder_paste_ratio,
@@ -241,7 +245,7 @@ impl ToSexpr for FootprintInlined {
                     self.locked.then(|| Sexpr::symbol("locked")),
                     self.placed.then(|| Sexpr::symbol("placed")),
                     Some(Sexpr::string_with_name("layer", self.layer)),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                    Some(self.uuid.to_sexpr()),
                     Some(self.position.to_sexpr()),
                     self.description
                         .as_ref()
@@ -255,6 +259,12 @@ impl ToSexpr for FootprintInlined {
                     self.path
                         .as_ref()
                         .map(|s| Sexpr::string_with_name("path", s)),
+                    self.sheet_name
+                        .as_ref()
+                        .map(|s| Sexpr::string_with_name("sheetname", s)),
+                    self.sheet_file
+                        .as_ref()
+                        .map(|s| Sexpr::string_with_name("sheetfile", s)),
                     self.solder_mask_margin
                         .map(|n| Sexpr::number_with_name("solder_mask_margin", n)),
                     self.solder_paste_margin
@@ -295,6 +305,122 @@ impl ToSexpr for FootprintInlined {
             ]
             .concat(),
         )
+    }
+}
+
+// ############################################################################
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[derive(Debug, PartialEq, Clone)]
+pub enum FootprintProperty {
+    Simple {
+        key: String,
+        value: String,
+    },
+    Complex {
+        key: String,
+        value: String,
+        position: Position,
+        unlocked: bool,
+        layer: LayerId,
+        hide: bool,
+        uuid: Uuid,
+        effects: TextEffects,
+    },
+}
+
+impl FromSexpr for FootprintProperty {
+    fn from_sexpr(mut parser: Parser) -> Result<Self, KiCadParseError> {
+        parser.expect_symbol_matching("property")?;
+
+        match parser.peek_next() {
+            Some(Sexpr::Symbol(_)) => {
+                let key = parser.expect_symbol()?;
+                let value = parser.expect_string()?;
+                parser.expect_end()?;
+
+                Ok(Self::Simple { key, value })
+            }
+            Some(Sexpr::String(_)) => {
+                let key = parser.expect_string()?;
+                let value = parser.expect_string()?;
+                let position = parser.expect::<Position>()?;
+                let unlocked = parser
+                    .maybe_list_with_name("unlocked")
+                    .map(|mut p| {
+                        p.expect_symbol_matching("yes")?;
+                        p.expect_end()?;
+
+                        Ok::<_, KiCadParseError>(())
+                    })
+                    .transpose()?
+                    .is_some();
+                let layer = parser.expect_string_with_name("layer")?.parse()?;
+                let hide = parser
+                    .maybe_list_with_name("hide")
+                    .map(|mut p| {
+                        p.expect_symbol_matching("yes")?;
+                        p.expect_end()?;
+
+                        Ok::<_, KiCadParseError>(())
+                    })
+                    .transpose()?
+                    .is_some();
+                let uuid = parser.expect::<Uuid>()?;
+                let effects = parser.expect::<TextEffects>()?;
+
+                Ok(Self::Complex {
+                    key,
+                    value,
+                    position,
+                    unlocked,
+                    layer,
+                    hide,
+                    uuid,
+                    effects,
+                })
+            }
+            Some(_) => Err(KiCadParseError::UnexpectedSexprType {
+                expected: SexprKind::String,
+            }),
+            None => Err(KiCadParseError::UnexpectedEndOfList),
+        }
+    }
+}
+
+simple_maybe_from_sexpr!(FootprintProperty, property);
+
+impl ToSexpr for FootprintProperty {
+    fn to_sexpr(&self) -> Sexpr {
+        match self {
+            FootprintProperty::Simple { key, value } => Sexpr::list_with_name(
+                "property",
+                [Some(Sexpr::symbol(key)), Some(Sexpr::string(value))],
+            ),
+            FootprintProperty::Complex {
+                key,
+                value,
+                position,
+                unlocked,
+                layer,
+                hide,
+                uuid,
+                effects,
+            } => Sexpr::list_with_name(
+                "property",
+                [
+                    Some(Sexpr::string(key)),
+                    Some(Sexpr::string(value)),
+                    Some(position.to_sexpr()),
+                    unlocked.then(|| Sexpr::symbol_with_name("unlocked", "yes")),
+                    Some(Sexpr::string_with_name("layer", *layer)),
+                    hide.then(|| Sexpr::symbol_with_name("hide", "yes")),
+                    Some(uuid.to_sexpr()),
+                    Some(effects.to_sexpr()),
+                ],
+            ),
+        }
     }
 }
 

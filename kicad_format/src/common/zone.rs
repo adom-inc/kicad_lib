@@ -5,7 +5,7 @@ use std::vec;
 use kicad_sexpr::Sexpr;
 
 use crate::{
-    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName, VecToMaybeSexprVec},
+    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, VecToMaybeSexprVec},
     simple_maybe_from_sexpr, simple_to_from_string, KiCadParseError,
 };
 
@@ -19,7 +19,7 @@ pub struct Zone {
     pub net_number: i32,
     pub net_name: String,
     pub layers: Vec<LayerId>,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
     pub name: Option<String>,
     pub hatch: Hatch,
     pub priority: Option<i32>,
@@ -79,7 +79,7 @@ impl FromSexpr for Zone {
                 });
             }
         };
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
         let name = parser.maybe_string_with_name("name")?;
         let hatch = parser.expect::<Hatch>()?;
         let priority = parser.maybe_number_with_name("priority")?.map(|n| n as i32);
@@ -118,7 +118,7 @@ impl FromSexpr for Zone {
             net_number,
             net_name,
             layers,
-            tstamp,
+            uuid,
             name,
             hatch,
             priority,
@@ -161,7 +161,7 @@ impl ToSexpr for Zone {
                     Some(Sexpr::number_with_name("net", self.net_number as f32)),
                     Some(Sexpr::string_with_name("net_name", &self.net_name)),
                     Some(layer_or_layers),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                    Some(self.uuid.to_sexpr()),
                     self.name
                         .as_ref()
                         .map(|name| Sexpr::string_with_name("name", name)),

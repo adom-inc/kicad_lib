@@ -14,7 +14,7 @@ pub struct PcbShape {
     pub kind: PcbShapeKind,
     pub stroke: Stroke,
     pub layer: LayerId,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
 }
 
 impl PcbShape {
@@ -24,7 +24,7 @@ impl PcbShape {
             kind: PcbShapeKind::Line(PcbLine { start, end }),
             stroke,
             layer,
-            tstamp: Uuid::new(),
+            uuid: Uuid::new(),
         }
     }
 
@@ -40,7 +40,7 @@ impl PcbShape {
             kind: PcbShapeKind::Rectangle(PcbRectangle { start, end, fill }),
             stroke,
             layer,
-            tstamp: Uuid::new(),
+            uuid: Uuid::new(),
         }
     }
 
@@ -56,7 +56,7 @@ impl PcbShape {
             kind: PcbShapeKind::Circle(PcbCircle { center, end, fill }),
             stroke,
             layer,
-            tstamp: Uuid::new(),
+            uuid: Uuid::new(),
         }
     }
 
@@ -70,7 +70,7 @@ impl PcbShape {
             }),
             stroke,
             layer,
-            tstamp: Uuid::new(),
+            uuid: Uuid::new(),
         }
     }
 
@@ -85,7 +85,7 @@ impl PcbShape {
             kind: PcbShapeKind::Polygon(PcbPolygon { points, fill }),
             stroke,
             layer,
-            tstamp: Uuid::new(),
+            uuid: Uuid::new(),
         }
     }
 
@@ -95,7 +95,7 @@ impl PcbShape {
             kind: PcbShapeKind::Curve(PcbBezier { points }),
             stroke,
             layer,
-            tstamp: Uuid::new(),
+            uuid: Uuid::new(),
         }
     }
 }
@@ -200,14 +200,14 @@ impl FromSexpr for PcbShape {
         };
 
         let layer = parser.expect_string_with_name("layer")?.parse()?;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
 
         Ok(Self {
             locked,
             kind,
             stroke,
             layer,
-            tstamp,
+            uuid,
         })
     }
 }
@@ -288,7 +288,7 @@ impl ToSexpr for PcbShape {
                     Some(self.stroke.to_sexpr()),
                     fill.map(|f| Sexpr::symbol_with_name("fill", f)),
                     Some(Sexpr::string_with_name("layer", self.layer)),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                    Some(self.uuid.to_sexpr()),
                 ][..],
             ]
             .concat(),

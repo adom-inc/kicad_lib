@@ -28,7 +28,7 @@ pub struct Pad {
     pub drill: Option<Drill>,
     pub property: Option<PadProperty>,
     pub layers: Vec<LayerId>,
-    pub remove_unused_layer: bool,
+    pub remove_unused_layers: Option<bool>,
     pub keep_end_layers: bool,
     pub zone_layer_connections: Option<Vec<LayerId>>,
     pub round_rect_radius_ratio: Option<f32>,
@@ -48,7 +48,7 @@ pub struct Pad {
     pub thermal_gap: Option<f32>,
     pub custom_pad_options: Option<CustomPadOptions>,
     pub custom_pad_primitives: Option<Vec<PadGraphicsPrimitive>>,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
 }
 
 impl Pad {
@@ -87,7 +87,9 @@ impl FromSexpr for Pad {
             p.expect_end()?;
             Ok::<_, KiCadParseError>(layers)
         })?;
-        let remove_unused_layer = parser.maybe_empty_list_with_name("remove_unused_layer")?;
+        let remove_unused_layers = (kind == PadKind::ThroughHole)
+            .then(|| parser.expect_bool_with_name("remove_unused_layers"))
+            .transpose()?;
         let keep_end_layers = parser.maybe_empty_list_with_name("keep_end_layers")?;
         let zone_layer_connections = parser
             .maybe_list_with_name("zone_layer_connections")
@@ -130,7 +132,7 @@ impl FromSexpr for Pad {
                 Ok::<_, KiCadParseError>(primitives)
             })
             .transpose()?;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
 
         parser.expect_end()?;
 
@@ -145,7 +147,7 @@ impl FromSexpr for Pad {
             drill,
             property,
             layers,
-            remove_unused_layer,
+            remove_unused_layers,
             keep_end_layers,
             zone_layer_connections,
             round_rect_radius_ratio,
@@ -165,7 +167,7 @@ impl FromSexpr for Pad {
             thermal_gap,
             custom_pad_options,
             custom_pad_primitives,
-            tstamp,
+            uuid,
         })
     }
 }
@@ -198,8 +200,8 @@ impl ToSexpr for Pad {
                         .map(Option::Some)
                         .collect::<Vec<_>>(),
                 )),
-                self.remove_unused_layer
-                    .then(|| Sexpr::list_with_name("remove_unused_layer", [])),
+                self.remove_unused_layers
+                    .map(|value| Sexpr::bool_with_name("remove_unused_layers", value)),
                 self.keep_end_layers
                     .then(|| Sexpr::list_with_name("keep_end_layers", [])),
                 self.zone_layer_connections.as_ref().map(|l| {
@@ -252,7 +254,7 @@ impl ToSexpr for Pad {
                             .collect::<Vec<_>>(),
                     )
                 }),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.uuid.to_sexpr()),
             ],
         )
     }
