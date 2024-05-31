@@ -32,6 +32,7 @@ pub mod setup;
 pub struct PcbFile {
     pub version: u32,
     pub generator: String,
+    pub generator_version: String,
     pub general_settings: GeneralSettings,
     pub page_settings: PageSettings,
     pub title_block: Option<TitleBlock>,
@@ -53,7 +54,11 @@ impl Default for PcbFile {
         Self {
             version: 20221018,
             generator: "kicad_lib".to_string(),
-            general_settings: GeneralSettings { thickness: 1.6 },
+            generator_version: env!("CARGO_PKG_VERSION").to_string(),
+            general_settings: GeneralSettings {
+                thickness: 1.6,
+                legacy_teardrops: false,
+            },
             page_settings: PageSettings {
                 size: PageSize::Standard(StandardPageSize::A4),
                 portrait: false,
@@ -247,6 +252,8 @@ impl Default for PcbFile {
                     hpgl_pen_number: 1,
                     hpgl_pen_speed: 20,
                     hpgl_pen_diameter: 15.0,
+                    pdf_front_fp_property_popups: true,
+                    pdf_back_fp_property_popups: true,
                     dxf_use_polygon_mode: true,
                     dxf_use_imperial_units: true,
                     dxf_use_pcbnew_font: true,
@@ -254,6 +261,7 @@ impl Default for PcbFile {
                     postscript_a4_output: false,
                     plot_references: true,
                     plot_values: true,
+                    plot_fp_text: true,
                     plot_invisible_text: false,
                     sketch_pads_on_fab: false,
                     subtract_mask_from_silk: false,
@@ -281,7 +289,8 @@ impl FromSexpr for PcbFile {
         parser.expect_symbol_matching("kicad_pcb")?;
 
         let version = parser.expect_number_with_name("version")? as u32;
-        let generator = parser.expect_symbol_with_name("generator")?;
+        let generator = parser.expect_string_with_name("generator")?;
+        let generator_version = parser.expect_string_with_name("generator_version")?;
         let general_settings = parser.expect::<GeneralSettings>()?;
         let page_settings = parser.expect::<PageSettings>()?;
         let title_block = parser.maybe::<TitleBlock>()?;
@@ -292,10 +301,13 @@ impl FromSexpr for PcbFile {
             Ok(layers)
         })?;
         let setup = parser.expect::<BoardSetup>()?;
+        //
         let properties = parser.expect_many::<Property>()?;
         let nets = parser.expect_many::<Net>()?;
+        //
         let footprints = parser.expect_many::<FootprintInlined>()?;
         let graphics_items = parser.expect_many::<PcbGraphicsItem>()?;
+        //
         let images = parser.expect_many::<Image>()?;
         let tracks = parser.expect_many::<Track>()?;
         let zones = parser.expect_many::<Zone>()?;
@@ -306,6 +318,7 @@ impl FromSexpr for PcbFile {
         Ok(Self {
             version,
             generator,
+            generator_version,
             general_settings,
             page_settings,
             title_block,
@@ -330,7 +343,11 @@ impl ToSexpr for PcbFile {
             [
                 &[
                     Some(Sexpr::number_with_name("version", self.version as f32)),
-                    Some(Sexpr::symbol_with_name("generator", &self.generator)),
+                    Some(Sexpr::string_with_name("generator", &self.generator)),
+                    Some(Sexpr::string_with_name(
+                        "generator_version",
+                        &self.generator_version,
+                    )),
                     Some(self.general_settings.to_sexpr()),
                     Some(self.page_settings.to_sexpr()),
                     self.title_block.as_ref().map(ToSexpr::to_sexpr),
@@ -362,6 +379,7 @@ impl ToSexpr for PcbFile {
 #[derive(Debug, PartialEq, Clone)]
 pub struct GeneralSettings {
     pub thickness: f32,
+    pub legacy_teardrops: bool,
 }
 
 impl FromSexpr for GeneralSettings {
@@ -369,10 +387,14 @@ impl FromSexpr for GeneralSettings {
         parser.expect_symbol_matching("general")?;
 
         let thickness = parser.expect_number_with_name("thickness")?;
+        let legacy_teardrops = parser.expect_bool_with_name("legacy_teardrops")?;
 
         parser.expect_end()?;
 
-        Ok(Self { thickness })
+        Ok(Self {
+            thickness,
+            legacy_teardrops,
+        })
     }
 }
 
@@ -380,7 +402,13 @@ impl ToSexpr for GeneralSettings {
     fn to_sexpr(&self) -> Sexpr {
         Sexpr::list_with_name(
             "general",
-            [Some(Sexpr::number_with_name("thickness", self.thickness))],
+            [
+                Some(Sexpr::number_with_name("thickness", self.thickness)),
+                Some(Sexpr::bool_with_name(
+                    "legacy_teardrops",
+                    self.legacy_teardrops,
+                )),
+            ],
         )
     }
 }
@@ -529,7 +557,7 @@ pub struct TrackSegment {
     pub width: f32,
     pub layer: LayerId,
     pub net: i32,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
 }
 
 impl FromSexpr for TrackSegment {
@@ -544,7 +572,7 @@ impl FromSexpr for TrackSegment {
             .expect_string_with_name("layer")?
             .parse::<LayerId>()?;
         let net = parser.expect_number_with_name("net")? as i32;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
 
         parser.expect_end()?;
 
@@ -555,7 +583,7 @@ impl FromSexpr for TrackSegment {
             width,
             layer,
             net,
-            tstamp,
+            uuid,
         })
     }
 }
@@ -571,7 +599,7 @@ impl ToSexpr for TrackSegment {
                 Some(Sexpr::number_with_name("width", self.width)),
                 Some(Sexpr::string_with_name("layer", self.layer)),
                 Some(Sexpr::number_with_name("net", self.net as f32)),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.uuid.to_sexpr()),
             ],
         )
     }
@@ -593,7 +621,7 @@ pub struct TrackVia {
     pub free: bool,
     pub zone_layer_connections: Option<Vec<LayerId>>,
     pub net: i32,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
 }
 
 impl FromSexpr for TrackVia {
@@ -635,7 +663,7 @@ impl FromSexpr for TrackVia {
             })
             .transpose()?;
         let net = parser.expect_number_with_name("net")? as i32;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
 
         parser.expect_end()?;
 
@@ -651,7 +679,7 @@ impl FromSexpr for TrackVia {
             free,
             zone_layer_connections,
             net,
-            tstamp,
+            uuid,
         })
     }
 }
@@ -694,7 +722,7 @@ impl ToSexpr for TrackVia {
                     )
                 }),
                 Some(Sexpr::number_with_name("net", self.net as f32)),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.uuid.to_sexpr()),
             ],
         )
     }
@@ -734,7 +762,7 @@ pub struct TrackArc {
     pub width: f32,
     pub layer: LayerId,
     pub net: i32,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
 }
 
 impl FromSexpr for TrackArc {
@@ -750,7 +778,7 @@ impl FromSexpr for TrackArc {
             .expect_string_with_name("layer")?
             .parse::<LayerId>()?;
         let net = parser.expect_number_with_name("net")? as i32;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
 
         parser.expect_end()?;
 
@@ -762,7 +790,7 @@ impl FromSexpr for TrackArc {
             width,
             layer,
             net,
-            tstamp,
+            uuid,
         })
     }
 }
@@ -779,7 +807,7 @@ impl ToSexpr for TrackArc {
                 Some(Sexpr::number_with_name("width", self.width)),
                 Some(Sexpr::string_with_name("layer", self.layer)),
                 Some(Sexpr::number_with_name("net", self.net as f32)),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.uuid.to_sexpr()),
             ],
         )
     }

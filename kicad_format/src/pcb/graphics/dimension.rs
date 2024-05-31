@@ -23,8 +23,8 @@ pub struct PcbDimension {
     pub kind: DimensionKind,
     /// The `layer` token defines the canonical layer the polygon resides on.
     pub layer: LayerId,
-    /// The `tstamp` token defines the unique identifier of the dimension object.
-    pub tstamp: Uuid,
+    /// The `uuid` token defines the unique identifier of the dimension object.
+    pub uuid: Uuid,
     /// The `pts` token attributes define the list of `xy` coordinates of the
     /// dimension.
     pub points: [Vec2D; 2],

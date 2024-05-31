@@ -460,7 +460,16 @@ impl FromSexpr for Font {
         let size = parser.expect_with_name::<Vec2D>("size")?;
         let line_spacing = parser.maybe_number_with_name("line_spacing")?;
         let thickness = parser.maybe_number_with_name("thickness")?;
-        let bold = parser.maybe_symbol_matching("bold");
+        let bold = parser
+            .maybe_list_with_name("bold")
+            .map(|mut p| {
+                p.expect_symbol_matching("yes")?;
+                p.expect_end()?;
+
+                Ok::<_, KiCadParseError>(())
+            })
+            .transpose()?
+            .is_some();
         let italic = parser.maybe_symbol_matching("italic");
         let color = parser.maybe::<Color>()?;
 
@@ -491,7 +500,7 @@ impl ToSexpr for Font {
                     .map(|l| Sexpr::number_with_name("line_spacing", l)),
                 self.thickness
                     .map(|t| Sexpr::number_with_name("thickness", t)),
-                self.bold.then(|| Sexpr::symbol("bold")),
+                self.bold.then(|| Sexpr::symbol_with_name("bold", "yes")),
                 self.italic.then(|| Sexpr::symbol("italic")),
                 self.color.as_ref().map(ToSexpr::to_sexpr),
             ],
@@ -846,8 +855,7 @@ impl ToSexpr for Property {
 
 // ############################################################################
 
-/// A universally unique identifier (sometimes referred to as a `tstamp`,
-/// although that is an artifact of the legacy file format).
+/// A universally unique identifier
 ///
 /// TODO: replace with just uuid::Uuid
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -888,7 +896,8 @@ impl FromSexprWithName for Uuid {
     fn from_sexpr_with_name(mut parser: Parser, name: &str) -> Result<Self, KiCadParseError> {
         parser.expect_symbol_matching(name)?;
 
-        let uuid = parser.expect_symbol()?.parse()?;
+        let uuid = parser.expect_string()?.parse()?;
+        parser.expect_end()?;
 
         Ok(Self(uuid))
     }

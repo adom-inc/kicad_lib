@@ -37,16 +37,8 @@ impl FromSexpr for BoardSetup {
         let pad_to_paste_clearance = parser.maybe_number_with_name("pad_to_paste_clearance")?;
         let pad_to_paste_clearance_ratio =
             parser.maybe_number_with_name("pad_to_paste_clearance_ratio")?;
-        let allow_soldermask_bridges_in_footprints = parser
-            .maybe_list_with_name("allow_soldermask_bridges_in_footprints")
-            .map(|mut p| {
-                p.expect_symbol_matching("yes")?;
-                p.expect_end()?;
-
-                Ok::<_, KiCadParseError>(())
-            })
-            .transpose()?
-            .is_some();
+        let allow_soldermask_bridges_in_footprints =
+            parser.expect_bool_with_name("allow_soldermask_bridges_in_footprints")?;
         let aux_axis_origin = parser.maybe_with_name::<Vec2D>("aux_axis_origin")?;
         let grid_origin = parser.maybe_with_name::<Vec2D>("grid_origin")?;
         let plot_options = parser.expect::<PcbPlotOptions>()?;
@@ -83,9 +75,10 @@ impl ToSexpr for BoardSetup {
                     .map(|p| Sexpr::number_with_name("pad_to_paste_clearance", p)),
                 self.pad_to_paste_clearance_ratio
                     .map(|p| Sexpr::number_with_name("pad_to_paste_clearance_ratio", p)),
-                self.allow_soldermask_bridges_in_footprints.then(|| {
-                    Sexpr::symbol_with_name("allow_soldermask_bridges_in_footprints", "yes")
-                }),
+                Some(Sexpr::bool_with_name(
+                    "allow_soldermask_bridges_in_footprints",
+                    self.allow_soldermask_bridges_in_footprints,
+                )),
                 self.aux_axis_origin
                     .as_ref()
                     .map(|a| a.to_sexpr_with_name("aux_axis_origin")),
@@ -391,6 +384,11 @@ pub struct PcbPlotOptions {
     /// in mm in hpgl files.)
     pub hpgl_pen_diameter: f32,
 
+    /// UNDOCUMENTED
+    pub pdf_front_fp_property_popups: bool,
+    /// UNDOCUMENTED
+    pub pdf_back_fp_property_popups: bool,
+
     /// DXF format: Plot items in outline (polygon) mode.
     ///
     /// In polygon mode, each item to plot is converted to a polygon and all
@@ -410,7 +408,9 @@ pub struct PcbPlotOptions {
     /// Enable plotting of part references
     pub plot_references: bool,
     /// Enable plotting of part values
-    pub plot_values: bool,
+    pub plot_values: bool, 
+    /// UNDOCUMENTED
+    pub plot_fp_text: bool,
     /// Force plotting of fields marked invisible
     pub plot_invisible_text: bool,
 
@@ -439,41 +439,46 @@ impl FromSexpr for PcbPlotOptions {
         let layer_selection = parse_bit_field(&parser.expect_symbol_with_name("layerselection")?)?;
         let plot_on_all_layers_selection =
             parse_bit_field(&parser.expect_symbol_with_name("plot_on_all_layers_selection")?)?;
-        let disable_aperture_macros = parser.expect_alt_bool_with_name("disableapertmacros")?;
-        let use_gerber_extensions = parser.expect_alt_bool_with_name("usegerberextensions")?;
-        let use_gerber_attributes = parser.expect_alt_bool_with_name("usegerberattributes")?;
+        let disable_aperture_macros = parser.expect_bool_with_name("disableapertmacros")?;
+        let use_gerber_extensions = parser.expect_bool_with_name("usegerberextensions")?;
+        let use_gerber_attributes = parser.expect_bool_with_name("usegerberattributes")?;
         let use_gerber_advanced_attributes =
-            parser.expect_alt_bool_with_name("usegerberadvancedattributes")?;
-        let create_gerber_job_file = parser.expect_alt_bool_with_name("creategerberjobfile")?;
+            parser.expect_bool_with_name("usegerberadvancedattributes")?;
+        let create_gerber_job_file = parser.expect_bool_with_name("creategerberjobfile")?;
         let gerber_precision = parser.maybe_number_with_name("gerberprecision")?;
         let dashed_line_dash_ratio = parser.expect_number_with_name("dashed_line_dash_ratio")?;
         let dashed_line_gap_ratio = parser.expect_number_with_name("dashed_line_gap_ratio")?;
         let svg_precision = parser.expect_number_with_name("svgprecision")? as u32;
-        let plot_frame_ref = parser.expect_alt_bool_with_name("plotframeref")?;
-        let vias_on_mask = parser.expect_alt_bool_with_name("viasonmask")?;
+        let plot_frame_ref = parser.expect_bool_with_name("plotframeref")?;
+        let vias_on_mask = parser.expect_bool_with_name("viasonmask")?;
         let plot_mode = parser
             .expect_number_with_name("mode")
             .map(|m| m as u8)
             .map(OutlineMode::try_from)??;
-        let use_aux_origin = parser.expect_alt_bool_with_name("useauxorigin")?;
+        let use_aux_origin = parser.expect_bool_with_name("useauxorigin")?;
         let hpgl_pen_number = parser.expect_number_with_name("hpglpennumber")? as i32;
         let hpgl_pen_speed = parser.expect_number_with_name("hpglpenspeed")? as i32;
         let hpgl_pen_diameter = parser.expect_number_with_name("hpglpendiameter")?;
-        let dxf_use_polygon_mode = parser.expect_alt_bool_with_name("dxfpolygonmode")?;
-        let dxf_use_imperial_units = parser.expect_alt_bool_with_name("dxfimperialunits")?;
-        let dxf_use_pcbnew_font = parser.expect_alt_bool_with_name("dxfusepcbnewfont")?;
-        let postscript_negative = parser.expect_alt_bool_with_name("psnegative")?;
-        let postscript_a4_output = parser.expect_alt_bool_with_name("psa4output")?;
-        let plot_references = parser.expect_alt_bool_with_name("plotreference")?;
-        let plot_values = parser.expect_alt_bool_with_name("plotvalue")?;
-        let plot_invisible_text = parser.expect_alt_bool_with_name("plotinvisibletext")?;
-        let sketch_pads_on_fab = parser.expect_alt_bool_with_name("sketchpadsonfab")?;
-        let subtract_mask_from_silk = parser.expect_alt_bool_with_name("subtractmaskfromsilk")?;
+        let pdf_front_fp_property_popups =
+            parser.expect_bool_with_name("pdf_front_fp_property_popups")?;
+        let pdf_back_fp_property_popups =
+            parser.expect_bool_with_name("pdf_back_fp_property_popups")?;
+        let dxf_use_polygon_mode = parser.expect_bool_with_name("dxfpolygonmode")?;
+        let dxf_use_imperial_units = parser.expect_bool_with_name("dxfimperialunits")?;
+        let dxf_use_pcbnew_font = parser.expect_bool_with_name("dxfusepcbnewfont")?;
+        let postscript_negative = parser.expect_bool_with_name("psnegative")?;
+        let postscript_a4_output = parser.expect_bool_with_name("psa4output")?;
+        let plot_references = parser.expect_bool_with_name("plotreference")?;
+        let plot_values = parser.expect_bool_with_name("plotvalue")?;
+        let plot_fp_text = parser.expect_bool_with_name("plotfptext")?;
+        let plot_invisible_text = parser.expect_bool_with_name("plotinvisibletext")?;
+        let sketch_pads_on_fab = parser.expect_bool_with_name("sketchpadsonfab")?;
+        let subtract_mask_from_silk = parser.expect_bool_with_name("subtractmaskfromsilk")?;
         let output_format = parser
             .expect_number_with_name("outputformat")
             .map(|m| m as u8)
             .map(PlotFormat::try_from)??;
-        let mirror = parser.expect_alt_bool_with_name("mirror")?;
+        let mirror = parser.expect_bool_with_name("mirror")?;
         let drill_shape = parser
             .expect_number_with_name("drillshape")
             .map(|m| m as u8)
@@ -502,6 +507,8 @@ impl FromSexpr for PcbPlotOptions {
             hpgl_pen_number,
             hpgl_pen_speed,
             hpgl_pen_diameter,
+            pdf_front_fp_property_popups,
+            pdf_back_fp_property_popups,
             dxf_use_polygon_mode,
             dxf_use_imperial_units,
             dxf_use_pcbnew_font,
@@ -509,6 +516,7 @@ impl FromSexpr for PcbPlotOptions {
             postscript_a4_output,
             plot_references,
             plot_values,
+            plot_fp_text,
             plot_invisible_text,
             sketch_pads_on_fab,
             subtract_mask_from_silk,
@@ -535,23 +543,23 @@ impl ToSexpr for PcbPlotOptions {
                     "plot_on_all_layers_selection",
                     assemble_bit_field(self.plot_on_all_layers_selection),
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "disableapertmacros",
                     self.disable_aperture_macros,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "usegerberextensions",
                     self.use_gerber_extensions,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "usegerberattributes",
                     self.use_gerber_attributes,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "usegerberadvancedattributes",
                     self.use_gerber_advanced_attributes,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "creategerberjobfile",
                     self.create_gerber_job_file,
                 )),
@@ -569,11 +577,11 @@ impl ToSexpr for PcbPlotOptions {
                     "svgprecision",
                     self.svg_precision as f32,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "plotframeref",
                     self.plot_frame_ref,
                 )),
-                Some(Sexpr::alt_bool_with_name("viasonmask", self.vias_on_mask)),
+                Some(Sexpr::bool_with_name("viasonmask", self.vias_on_mask)),
                 Some(Sexpr::number_with_name(
                     "mode",
                     // Oh the joys of the KiCad file format :)
@@ -584,7 +592,7 @@ impl ToSexpr for PcbPlotOptions {
                         1
                     } as f32,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "useauxorigin",
                     self.use_aux_origin,
                 )),
@@ -600,40 +608,47 @@ impl ToSexpr for PcbPlotOptions {
                     "hpglpendiameter",
                     self.hpgl_pen_diameter,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
+                    "pdf_front_fp_property_popups",
+                    self.pdf_front_fp_property_popups,
+                )), Some(Sexpr::bool_with_name(
+                    "pdf_back_fp_property_popups",
+                    self.pdf_back_fp_property_popups,
+                )), Some(Sexpr::bool_with_name(
                     "dxfpolygonmode",
                     self.dxf_use_polygon_mode,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "dxfimperialunits",
                     self.dxf_use_imperial_units,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "dxfusepcbnewfont",
                     self.dxf_use_pcbnew_font,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "psnegative",
                     self.postscript_negative,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "psa4output",
                     self.postscript_a4_output,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "plotreference",
                     self.plot_references,
                 )),
-                Some(Sexpr::alt_bool_with_name("plotvalue", self.plot_values)),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name("plotvalue", self.plot_values)),
+                Some(Sexpr::bool_with_name("plotfptext", self.plot_fp_text)),
+                Some(Sexpr::bool_with_name(
                     "plotinvisibletext",
                     self.plot_invisible_text,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "sketchpadsonfab",
                     self.sketch_pads_on_fab,
                 )),
-                Some(Sexpr::alt_bool_with_name(
+                Some(Sexpr::bool_with_name(
                     "subtractmaskfromsilk",
                     self.subtract_mask_from_silk,
                 )),
@@ -641,7 +656,7 @@ impl ToSexpr for PcbPlotOptions {
                     "outputformat",
                     self.output_format as u8 as f32,
                 )),
-                Some(Sexpr::alt_bool_with_name("mirror", self.mirror)),
+                Some(Sexpr::bool_with_name("mirror", self.mirror)),
                 Some(Sexpr::number_with_name(
                     "drillshape",
                     self.drill_shape as u8 as f32,

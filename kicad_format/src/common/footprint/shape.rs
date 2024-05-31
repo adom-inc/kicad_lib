@@ -17,7 +17,7 @@ pub struct FootprintShape {
     pub kind: FootprintShapeKind,
     pub stroke: Stroke,
     pub layer: LayerId,
-    pub tstamp: Uuid,
+    pub uuid: Uuid,
 }
 
 /// All the different types of shapes allowed within a footprint.
@@ -130,14 +130,14 @@ impl FromSexpr for FootprintShape {
         };
 
         let layer = parser.expect_string_with_name("layer")?.parse()?;
-        let tstamp = parser.expect_with_name::<Uuid>("tstamp")?;
+        let uuid = parser.expect::<Uuid>()?;
 
         Ok(Self {
             locked,
             kind,
             stroke,
             layer,
-            tstamp,
+            uuid,
         })
     }
 }
@@ -218,7 +218,7 @@ impl ToSexpr for FootprintShape {
                     Some(self.stroke.to_sexpr()),
                     fill.map(|f| Sexpr::symbol_with_name("fill", f)),
                     Some(Sexpr::string_with_name("layer", self.layer)),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                    Some(self.uuid.to_sexpr()),
                 ][..],
             ]
             .concat(),
