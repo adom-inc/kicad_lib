@@ -117,26 +117,8 @@ impl FromSexpr for BoardStackup {
             .maybe_string_with_name("edge_connector")?
             .map(|s| s.parse::<EdgeConnectorConstraints>())
             .transpose()?;
-        let castellated_pads = parser
-            .maybe_list_with_name("castellated_pads")
-            .map(|mut p| {
-                p.expect_symbol_matching("yes")?;
-                p.expect_end()?;
-
-                Ok::<_, KiCadParseError>(())
-            })
-            .transpose()?
-            .is_some();
-        let edge_plating = parser
-            .maybe_list_with_name("edge_plating")
-            .map(|mut p| {
-                p.expect_symbol_matching("yes")?;
-                p.expect_end()?;
-
-                Ok::<_, KiCadParseError>(())
-            })
-            .transpose()?
-            .is_some();
+        let castellated_pads = parser.maybe_bool_with_name("castellated_pads")?;
+        let edge_plating = parser.maybe_bool_with_name("edge_plating")?;
 
         parser.expect_end()?;
 
@@ -408,7 +390,7 @@ pub struct PcbPlotOptions {
     /// Enable plotting of part references
     pub plot_references: bool,
     /// Enable plotting of part values
-    pub plot_values: bool, 
+    pub plot_values: bool,
     /// UNDOCUMENTED
     pub plot_fp_text: bool,
     /// Force plotting of fields marked invisible
@@ -577,10 +559,7 @@ impl ToSexpr for PcbPlotOptions {
                     "svgprecision",
                     self.svg_precision as f32,
                 )),
-                Some(Sexpr::bool_with_name(
-                    "plotframeref",
-                    self.plot_frame_ref,
-                )),
+                Some(Sexpr::bool_with_name("plotframeref", self.plot_frame_ref)),
                 Some(Sexpr::bool_with_name("viasonmask", self.vias_on_mask)),
                 Some(Sexpr::number_with_name(
                     "mode",
@@ -592,10 +571,7 @@ impl ToSexpr for PcbPlotOptions {
                         1
                     } as f32,
                 )),
-                Some(Sexpr::bool_with_name(
-                    "useauxorigin",
-                    self.use_aux_origin,
-                )),
+                Some(Sexpr::bool_with_name("useauxorigin", self.use_aux_origin)),
                 Some(Sexpr::number_with_name(
                     "hpglpennumber",
                     self.hpgl_pen_number as f32,
@@ -611,10 +587,12 @@ impl ToSexpr for PcbPlotOptions {
                 Some(Sexpr::bool_with_name(
                     "pdf_front_fp_property_popups",
                     self.pdf_front_fp_property_popups,
-                )), Some(Sexpr::bool_with_name(
+                )),
+                Some(Sexpr::bool_with_name(
                     "pdf_back_fp_property_popups",
                     self.pdf_back_fp_property_popups,
-                )), Some(Sexpr::bool_with_name(
+                )),
+                Some(Sexpr::bool_with_name(
                     "dxfpolygonmode",
                     self.dxf_use_polygon_mode,
                 )),
@@ -634,10 +612,7 @@ impl ToSexpr for PcbPlotOptions {
                     "psa4output",
                     self.postscript_a4_output,
                 )),
-                Some(Sexpr::bool_with_name(
-                    "plotreference",
-                    self.plot_references,
-                )),
+                Some(Sexpr::bool_with_name("plotreference", self.plot_references)),
                 Some(Sexpr::bool_with_name("plotvalue", self.plot_values)),
                 Some(Sexpr::bool_with_name("plotfptext", self.plot_fp_text)),
                 Some(Sexpr::bool_with_name(
