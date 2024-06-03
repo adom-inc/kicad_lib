@@ -62,16 +62,20 @@ impl FootprintInlined {
     /// position, properties, path, or fp_text/fp_text_box fields.
     pub fn update_from_library(&mut self, footprint_library_file: &FootprintLibraryFile) {
         self.layer = footprint_library_file.layer;
-        self.description = footprint_library_file.description.clone();
-        self.tags = footprint_library_file.tags.clone();
+        self.description
+            .clone_from(&footprint_library_file.description);
+        self.tags.clone_from(&footprint_library_file.tags);
         self.solder_mask_margin = footprint_library_file.solder_mask_margin;
         self.solder_paste_margin = footprint_library_file.solder_paste_margin;
         self.solder_paste_ratio = footprint_library_file.solder_paste_ratio;
         self.clearance = footprint_library_file.clearance;
         self.zone_connect = footprint_library_file.zone_connect;
-        self.attributes = footprint_library_file.attributes.clone();
-        self.private_layers = footprint_library_file.private_layers.clone();
-        self.net_tie_pad_groups = footprint_library_file.net_tie_pad_groups.clone();
+        self.attributes
+            .clone_from(&footprint_library_file.attributes);
+        self.private_layers
+            .clone_from(&footprint_library_file.private_layers);
+        self.net_tie_pad_groups
+            .clone_from(&footprint_library_file.net_tie_pad_groups);
 
         // Remove shapes and images
         self.graphics_items.retain(|g| {
@@ -125,17 +129,18 @@ impl FootprintInlined {
             }
 
             if let Some(pad_model) = pad_model {
-                pad.pin_function = pad_model.pin_function.clone();
-                pad.pin_type = pad_model.pin_type.clone();
+                pad.pin_function.clone_from(&pad_model.pin_function);
+                pad.pin_type.clone_from(&pad_model.pin_type);
             }
 
             pad.net = pad_model.and_then(|p| p.net.clone());
         }
 
         self.pads = new_pads;
-        self.keep_out_zones = footprint_library_file.keep_out_zones.clone();
-        self.groups = footprint_library_file.groups.clone();
-        self.models = footprint_library_file.models.clone();
+        self.keep_out_zones
+            .clone_from(&footprint_library_file.keep_out_zones);
+        self.groups.clone_from(&footprint_library_file.groups);
+        self.models.clone_from(&footprint_library_file.models);
     }
 
     pub fn find_pad_by_number(&self, pad_number: &str, search_after: Option<&Pad>) -> Option<&Pad> {
@@ -346,27 +351,9 @@ impl FromSexpr for FootprintProperty {
                 let key = parser.expect_string()?;
                 let value = parser.expect_string()?;
                 let position = parser.expect::<Position>()?;
-                let unlocked = parser
-                    .maybe_list_with_name("unlocked")
-                    .map(|mut p| {
-                        p.expect_symbol_matching("yes")?;
-                        p.expect_end()?;
-
-                        Ok::<_, KiCadParseError>(())
-                    })
-                    .transpose()?
-                    .is_some();
+                let unlocked = parser.maybe_bool_with_name("unlocked")?;
                 let layer = parser.expect_string_with_name("layer")?.parse()?;
-                let hide = parser
-                    .maybe_list_with_name("hide")
-                    .map(|mut p| {
-                        p.expect_symbol_matching("yes")?;
-                        p.expect_end()?;
-
-                        Ok::<_, KiCadParseError>(())
-                    })
-                    .transpose()?
-                    .is_some();
+                let hide = parser.maybe_bool_with_name("hide")?;
                 let uuid = parser.expect::<Uuid>()?;
                 let effects = parser.expect::<TextEffects>()?;
 
@@ -614,7 +601,7 @@ impl FromSexpr for Model {
         parser.expect_symbol_matching("model")?;
 
         let file = parser.expect_string()?;
-        let hide = parser.maybe_symbol_matching("hide");
+        let hide = parser.maybe_bool_with_name("hide")?;
         let opacity = parser.maybe_number_with_name("opacity")?;
         let offset = parser.expect_list_with_name("offset")?.expect::<Vec3D>()?;
         let scale = parser.expect_list_with_name("scale")?.expect::<Vec3D>()?;
@@ -641,7 +628,7 @@ impl ToSexpr for Model {
             "model",
             [
                 Some(Sexpr::string(&self.file)),
-                self.hide.then(|| Sexpr::symbol("hide")),
+                self.hide.then(|| Sexpr::bool_with_name("hide", self.hide)),
                 self.opacity.map(|o| Sexpr::number_with_name("opacity", o)),
                 Some(Sexpr::list_with_name(
                     "offset",

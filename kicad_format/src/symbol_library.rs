@@ -19,6 +19,7 @@ pub struct SymbolLibraryFile {
     pub version: u32,
     /// The `generator` token attribute defines the program used to write the file.
     pub generator: String,
+    pub generator_version: String,
     /// The symbol definitions go here. Symbol library files can have zero or more symbols.
     pub symbols: Vec<SymbolDefinition>,
 }
@@ -28,7 +29,8 @@ impl FromSexpr for SymbolLibraryFile {
         parser.expect_symbol_matching("kicad_symbol_lib")?;
 
         let version = parser.expect_number_with_name("version")? as u32;
-        let generator = parser.expect_symbol_with_name("generator")?;
+        let generator = parser.expect_string_with_name("generator")?;
+        let generator_version = parser.expect_string_with_name("generator_version")?;
         let symbols = parser.expect_many::<SymbolDefinition>()?;
 
         parser.expect_end()?;
@@ -36,6 +38,7 @@ impl FromSexpr for SymbolLibraryFile {
         Ok(Self {
             version,
             generator,
+            generator_version,
             symbols,
         })
     }
@@ -48,7 +51,8 @@ impl ToSexpr for SymbolLibraryFile {
             [
                 &[
                     Some(Sexpr::number_with_name("version", self.version as f32)),
-                    Some(Sexpr::symbol_with_name("generator", &self.generator)),
+                    Some(Sexpr::string_with_name("generator", &self.generator)),
+                    Some(Sexpr::string_with_name("generator_version", &self.generator_version)),
                 ][..],
                 &self.symbols.into_sexpr_vec(),
             ]

@@ -398,7 +398,7 @@ impl FromSexpr for TextEffects {
 
         let font = parser.expect::<Font>()?;
         let justify = parser.maybe::<Justify>()?;
-        let hide = parser.maybe_symbol_matching("hide");
+        let hide = parser.maybe_bool_with_name("hide")?;
         let href = parser.maybe_string_with_name("href")?;
 
         parser.expect_end()?;
@@ -419,7 +419,7 @@ impl ToSexpr for TextEffects {
             [
                 Some(self.font.to_sexpr()),
                 self.justify.as_ref().map(ToSexpr::to_sexpr),
-                self.hide.then(|| Sexpr::symbol("hide")),
+                self.hide.then(|| Sexpr::bool_with_name("hide", true)),
                 self.href
                     .as_ref()
                     .map(|h| Sexpr::string_with_name("href", h)),
@@ -460,17 +460,8 @@ impl FromSexpr for Font {
         let size = parser.expect_with_name::<Vec2D>("size")?;
         let line_spacing = parser.maybe_number_with_name("line_spacing")?;
         let thickness = parser.maybe_number_with_name("thickness")?;
-        let bold = parser
-            .maybe_list_with_name("bold")
-            .map(|mut p| {
-                p.expect_symbol_matching("yes")?;
-                p.expect_end()?;
-
-                Ok::<_, KiCadParseError>(())
-            })
-            .transpose()?
-            .is_some();
-        let italic = parser.maybe_symbol_matching("italic");
+        let bold = parser.maybe_bool_with_name("bold")?;
+        let italic = parser.maybe_bool_with_name("italic")?;
         let color = parser.maybe::<Color>()?;
 
         parser.expect_end()?;
@@ -500,8 +491,8 @@ impl ToSexpr for Font {
                     .map(|l| Sexpr::number_with_name("line_spacing", l)),
                 self.thickness
                     .map(|t| Sexpr::number_with_name("thickness", t)),
-                self.bold.then(|| Sexpr::symbol_with_name("bold", "yes")),
-                self.italic.then(|| Sexpr::symbol("italic")),
+                self.bold.then(|| Sexpr::bool_with_name("bold", true)),
+                self.italic.then(|| Sexpr::bool_with_name("italic", true)),
                 self.color.as_ref().map(ToSexpr::to_sexpr),
             ],
         )
@@ -913,7 +904,7 @@ impl ToSexpr for Uuid {
 
 impl ToSexprWithName for Uuid {
     fn to_sexpr_with_name(&self, name: &str) -> Sexpr {
-        Sexpr::list_with_name(name, [Some(Sexpr::symbol(self.to_string()))])
+        Sexpr::list_with_name(name, [Some(Sexpr::string(self.to_string()))])
     }
 }
 

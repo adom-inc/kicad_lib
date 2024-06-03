@@ -31,31 +31,13 @@ impl FromSexpr for FootprintText {
         let kind = parser.expect_symbol()?.parse()?;
         let text = parser.expect_string()?;
         let position = parser.expect::<FootprintTextPosition>()?;
-        let unlocked = parser
-            .maybe_list_with_name("unlocked")
-            .map(|mut p| {
-                p.expect_symbol_matching("yes")?;
-                p.expect_end()?;
-
-                Ok::<_, KiCadParseError>(())
-            })
-            .transpose()?
-            .is_some();
+        let unlocked = parser.maybe_bool_with_name("unlocked")?;
         let (layer, knockout) = parser.expect_list_with_name("layer").and_then(|mut list| {
             let layer = list.expect_string()?.parse()?;
             let knockout = list.maybe_symbol_matching("knockout");
             Ok((layer, knockout))
         })?;
-        let hide = parser
-            .maybe_list_with_name("hide")
-            .map(|mut p| {
-                p.expect_symbol_matching("yes")?;
-                p.expect_end()?;
-
-                Ok::<_, KiCadParseError>(())
-            })
-            .transpose()?
-            .is_some();
+        let hide = parser.maybe_bool_with_name("hide")?;
         let uuid = parser.expect::<Uuid>()?;
         let effects = parser.expect::<TextEffects>()?;
 

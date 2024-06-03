@@ -55,6 +55,7 @@ simple_to_from_string! {
 pub struct SchematicFile {
     pub version: u32,
     pub generator: String,
+    pub generator_version: String,
     pub uuid: Uuid,
     pub page_settings: PageSettings,
     pub title_block: Option<TitleBlock>,
@@ -81,7 +82,8 @@ impl FromSexpr for SchematicFile {
         parser.expect_symbol_matching("kicad_sch")?;
 
         let version = parser.expect_number_with_name("version")? as u32;
-        let generator = parser.expect_symbol_with_name("generator")?;
+        let generator = parser.expect_string_with_name("generator")?;
+        let generator_version = parser.expect_string_with_name("generator_version")?;
         let uuid = parser.expect::<Uuid>()?;
         let page_settings = parser.expect::<PageSettings>()?;
         let title_block = parser.maybe::<TitleBlock>()?;
@@ -122,6 +124,7 @@ impl FromSexpr for SchematicFile {
         Ok(Self {
             version,
             generator,
+            generator_version,
             uuid,
             page_settings,
             title_block,
@@ -152,7 +155,11 @@ impl ToSexpr for SchematicFile {
             [
                 &[
                     Some(Sexpr::number_with_name("version", self.version as f32)),
-                    Some(Sexpr::symbol_with_name("generator", &self.generator)),
+                    Some(Sexpr::string_with_name("generator", &self.generator)),
+                    Some(Sexpr::string_with_name(
+                        "generator_version",
+                        &self.generator_version,
+                    )),
                     Some(self.uuid.to_sexpr()),
                     Some(self.page_settings.to_sexpr()),
                     self.title_block.as_ref().map(ToSexpr::to_sexpr),
@@ -429,6 +436,7 @@ simple_to_from_string! {
 #[derive(Debug, PartialEq, Clone)]
 pub struct SchematicTextBox {
     pub text: String,
+    pub exclude_from_sim: bool,
     pub position: Position,
     pub size: Vec2D,
     pub stroke: Stroke,
@@ -442,6 +450,7 @@ impl FromSexpr for SchematicTextBox {
         parser.expect_symbol_matching("text_box")?;
 
         let text = parser.expect_string()?;
+        let exclude_from_sim = parser.expect_bool_with_name("exclude_from_sim")?;
         let position = parser.expect::<Position>()?;
         let size = parser.expect_with_name::<Vec2D>("size")?;
         let stroke = parser.expect::<Stroke>()?;
@@ -453,6 +462,7 @@ impl FromSexpr for SchematicTextBox {
 
         Ok(Self {
             text,
+            exclude_from_sim,
             position,
             size,
             stroke,
@@ -471,6 +481,10 @@ impl ToSexpr for SchematicTextBox {
             "text_box",
             [
                 Some(Sexpr::string(&self.text)),
+                Some(Sexpr::bool_with_name(
+                    "exclude_from_sim",
+                    self.exclude_from_sim,
+                )),
                 Some(self.position.to_sexpr()),
                 Some(self.size.to_sexpr_with_name("size")),
                 Some(self.stroke.to_sexpr()),
@@ -487,6 +501,7 @@ impl ToSexpr for SchematicTextBox {
 #[derive(Debug, PartialEq, Clone)]
 pub struct SchematicText {
     pub text: String,
+    pub exclude_from_sim: bool,
     pub position: Position,
     pub effects: TextEffects,
     pub uuid: Uuid,
@@ -497,6 +512,7 @@ impl FromSexpr for SchematicText {
         parser.expect_symbol_matching("text")?;
 
         let text = parser.expect_string()?;
+        let exclude_from_sim = parser.expect_bool_with_name("exclude_from_sim")?;
         let position = parser.expect::<Position>()?;
         let effects = parser.expect::<TextEffects>()?;
         let uuid = parser.expect::<Uuid>()?;
@@ -505,6 +521,7 @@ impl FromSexpr for SchematicText {
 
         Ok(Self {
             text,
+            exclude_from_sim,
             position,
             effects,
             uuid,
@@ -520,6 +537,10 @@ impl ToSexpr for SchematicText {
             "text",
             [
                 Some(Sexpr::string(&self.text)),
+                Some(Sexpr::bool_with_name(
+                    "exclude_from_sim",
+                    self.exclude_from_sim,
+                )),
                 Some(self.position.to_sexpr()),
                 Some(self.effects.to_sexpr()),
                 Some(self.uuid.to_sexpr()),
@@ -546,7 +567,7 @@ impl FromSexpr for LocalLabel {
 
         let text = parser.expect_string()?;
         let position = parser.expect::<Position>()?;
-        let fields_autoplaced = parser.maybe_empty_list_with_name("fields_autoplaced")?;
+        let fields_autoplaced = parser.maybe_bool_with_name("fields_autoplaced")?;
         let effects = parser.expect::<TextEffects>()?;
         let uuid = parser.expect::<Uuid>()?;
         let properties = parser.expect_many::<SymbolProperty>()?;
@@ -575,7 +596,7 @@ impl ToSexpr for LocalLabel {
                     Some(Sexpr::string(&self.text)),
                     Some(self.position.to_sexpr()),
                     self.fields_autoplaced
-                        .then(|| Sexpr::list_with_name("fields_autoplaced", [])),
+                        .then(|| Sexpr::bool_with_name("fields_autoplaced", true)),
                     Some(self.effects.to_sexpr()),
                     Some(self.uuid.to_sexpr()),
                 ][..],
@@ -608,7 +629,7 @@ impl FromSexpr for GlobalLabel {
             .expect_symbol_with_name("shape")?
             .parse::<SheetPinShape>()?;
         let position = parser.expect::<Position>()?;
-        let fields_autoplaced = parser.maybe_empty_list_with_name("fields_autoplaced")?;
+        let fields_autoplaced = parser.maybe_bool_with_name("fields_autoplaced")?;
         let effects = parser.expect::<TextEffects>()?;
         let uuid = parser.expect::<Uuid>()?;
         let properties = parser.expect_many::<SymbolProperty>()?;
@@ -639,7 +660,7 @@ impl ToSexpr for GlobalLabel {
                     Some(Sexpr::symbol_with_name("shape", self.shape)),
                     Some(self.position.to_sexpr()),
                     self.fields_autoplaced
-                        .then(|| Sexpr::list_with_name("fields_autoplaced", [])),
+                        .then(|| Sexpr::bool_with_name("fields_autoplaced", true)),
                     Some(self.effects.to_sexpr()),
                     Some(self.uuid.to_sexpr()),
                 ][..],
@@ -673,7 +694,7 @@ impl FromSexpr for HierarchicalLabel {
             .expect_symbol_with_name("shape")?
             .parse::<SheetPinShape>()?;
         let position = parser.expect::<Position>()?;
-        let fields_autoplaced = parser.maybe_empty_list_with_name("fields_autoplaced")?;
+        let fields_autoplaced = parser.maybe_bool_with_name("fields_autoplaced")?;
         let effects = parser.expect::<TextEffects>()?;
         let uuid = parser.expect::<Uuid>()?;
         let properties = parser.expect_many::<SymbolProperty>()?;
@@ -704,7 +725,7 @@ impl ToSexpr for HierarchicalLabel {
                     Some(Sexpr::symbol_with_name("shape", self.shape)),
                     Some(self.position.to_sexpr()),
                     self.fields_autoplaced
-                        .then(|| Sexpr::list_with_name("fields_autoplaced", [])),
+                        .then(|| Sexpr::bool_with_name("fields_autoplaced", true)),
                     Some(self.effects.to_sexpr()),
                     Some(self.uuid.to_sexpr()),
                 ][..],

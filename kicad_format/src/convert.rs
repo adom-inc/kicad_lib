@@ -401,6 +401,18 @@ impl Parser {
             .transpose()
     }
 
+    pub fn maybe_bool_with_name(&mut self, name: &str) -> Result<bool, KiCadParseError> {
+        self.maybe_list_with_name(name)
+            .map(|mut p| {
+                p.expect_symbol_matching("yes")?;
+                p.expect_end()?;
+
+                Ok::<_, KiCadParseError>(())
+            })
+            .transpose()
+            .map(|o| o.is_some())
+    }
+
     pub fn maybe_symbol_matching(&mut self, expected: &str) -> bool {
         let Some(symbol) = self.peek_symbol() else {
             return false;

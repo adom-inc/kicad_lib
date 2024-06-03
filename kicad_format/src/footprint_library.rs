@@ -4,10 +4,10 @@ use kicad_sexpr::Sexpr;
 
 use crate::{
     common::{
-        footprint::{FootprintAttributes, FootprintGraphicsItem, Model, ZoneConnectKind},
+        footprint::{FootprintAttributes, FootprintGraphicsItem, FootprintProperty, Model, ZoneConnectKind},
         pad::Pad,
         zone::Zone,
-        Group, LayerId, Property,
+        Group, LayerId,
     },
     convert::{FromSexpr, Parser, ToSexpr, VecToMaybeSexprVec},
     KiCadParseError,
@@ -27,10 +27,11 @@ pub struct FootprintLibraryFile {
     pub name: String,
     pub version: u32,
     pub generator: String,
+    pub generator_version: String,
     pub layer: LayerId,
     pub description: Option<String>,
     pub tags: Option<String>,
-    pub properties: Vec<Property>,
+    pub properties: Vec<FootprintProperty>,
     pub solder_mask_margin: Option<f32>,
     pub solder_paste_margin: Option<f32>,
     pub solder_paste_ratio: Option<f32>,
@@ -52,11 +53,12 @@ impl FromSexpr for FootprintLibraryFile {
 
         let name = parser.expect_string()?;
         let version = parser.expect_number_with_name("version")? as u32;
-        let generator = parser.expect_symbol_with_name("generator")?;
+        let generator = parser.expect_string_with_name("generator")?;
+        let generator_version = parser.expect_string_with_name("generator_version")?;
         let layer = parser.expect_string_with_name("layer")?.parse()?;
         let description = parser.maybe_string_with_name("descr")?;
         let tags = parser.maybe_string_with_name("tags")?;
-        let properties = parser.expect_many::<Property>()?;
+        let properties = parser.expect_many::<FootprintProperty>()?;
         let solder_mask_margin = parser.maybe_number_with_name("solder_mask_margin")?;
         let solder_paste_margin = parser.maybe_number_with_name("solder_paste_margin")?;
         let solder_paste_ratio = parser.maybe_number_with_name("solder_paste_ratio")?;
@@ -99,6 +101,7 @@ impl FromSexpr for FootprintLibraryFile {
             name,
             version,
             generator,
+            generator_version,
             layer,
             description,
             tags,
@@ -128,7 +131,8 @@ impl ToSexpr for FootprintLibraryFile {
                 vec![
                     Some(Sexpr::string(&self.name)),
                     Some(Sexpr::number_with_name("version", self.version as f32)),
-                    Some(Sexpr::symbol_with_name("generator", &self.generator)),
+                    Some(Sexpr::string_with_name("generator", &self.generator)),
+                    Some(Sexpr::string_with_name("generator_version", &self.generator_version)),
                     Some(Sexpr::string_with_name("layer", self.layer)),
                     self.description
                         .as_ref()
