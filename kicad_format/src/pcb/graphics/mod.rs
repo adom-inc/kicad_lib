@@ -17,8 +17,6 @@ pub mod dimension;
 pub mod shape;
 pub mod text;
 
-// TODO: Dimension
-
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[cfg_attr(feature = "serde", serde(tag = "type"))]
