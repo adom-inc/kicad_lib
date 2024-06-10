@@ -102,7 +102,24 @@ impl FromSexpr for PcbDimension {
 
 impl ToSexpr for PcbDimension {
     fn to_sexpr(&self) -> Sexpr {
-        todo!("impl ToSexpr for PcbDimension")
+        Sexpr::list_with_name(
+            "dimension",
+            [
+                Some(Sexpr::symbol_with_name("type", self.kind)),
+                self.locked.then(|| Sexpr::bool_with_name("locked", true)),
+                Some(Sexpr::string_with_name("layer", self.layer)),
+                Some(self.uuid.to_sexpr()),
+                Some(self.points.to_vec().to_sexpr()),
+                self.height.map(|h| Sexpr::number_with_name("height", h)),
+                self.leader_length
+                    .map(|l| Sexpr::number_with_name("leader_length", l)),
+                self.orientation
+                    .map(|o| Sexpr::number_with_name("orientation", o)),
+                self.text.as_ref().map(ToSexpr::to_sexpr),
+                self.format.as_ref().map(ToSexpr::to_sexpr),
+                Some(self.style.to_sexpr()),
+            ],
+        )
     }
 }
 
@@ -202,7 +219,24 @@ impl FromSexpr for DimensionFormat {
 
 impl ToSexpr for DimensionFormat {
     fn to_sexpr(&self) -> Sexpr {
-        todo!("impl ToSexpr for DimensionFormat")
+        Sexpr::list_with_name(
+            "format",
+            [
+                Some(Sexpr::string_with_name("prefix", &self.prefix)),
+                Some(Sexpr::string_with_name("suffix", &self.suffix)),
+                Some(Sexpr::number_with_name("units", self.units as u8 as f32)),
+                Some(Sexpr::number_with_name(
+                    "units_format",
+                    self.units_format as u8 as f32,
+                )),
+                Some(Sexpr::number_with_name("precision", self.precision as f32)),
+                self.override_value
+                    .as_ref()
+                    .map(|o| Sexpr::string_with_name("override_value", o)),
+                self.suppress_zeroes
+                    .then(|| Sexpr::symbol("suppress_zeroes")),
+            ],
+        )
     }
 }
 
@@ -314,6 +348,8 @@ impl FromSexpr for DimensionStyle {
         let extension_offset = parser.expect_number_with_name("extension_offset")?;
         let keep_text_aligned = parser.maybe_symbol_matching("keep_text_aligned");
 
+        parser.expect_end()?;
+
         Ok(Self {
             thickness,
             arrow_length,
@@ -328,7 +364,27 @@ impl FromSexpr for DimensionStyle {
 
 impl ToSexpr for DimensionStyle {
     fn to_sexpr(&self) -> Sexpr {
-        todo!("impl ToSexpr for DimensionStyle")
+        Sexpr::list_with_name(
+            "format",
+            [
+                Some(Sexpr::number_with_name("thickness", self.thickness)),
+                Some(Sexpr::number_with_name("arrow_length", self.arrow_length)),
+                Some(Sexpr::number_with_name(
+                    "text_position_mode",
+                    self.text_position_mode as u8 as f32,
+                )),
+                self.extension_height
+                    .map(|e| Sexpr::number_with_name("extension_height", e)),
+                self.text_frame
+                    .map(|t| Sexpr::number_with_name("text_frame", t as u8 as f32)),
+                Some(Sexpr::number_with_name(
+                    "extension_offset",
+                    self.extension_offset,
+                )),
+                self.keep_text_aligned
+                    .then(|| Sexpr::symbol("keep_text_aligned")),
+            ],
+        )
     }
 }
 
