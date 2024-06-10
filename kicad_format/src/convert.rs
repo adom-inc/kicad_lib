@@ -52,7 +52,7 @@ impl Parser {
         }
     }
 
-    fn expect_next(&mut self) -> Result<Sexpr, KiCadParseError> {
+    pub fn expect_next(&mut self) -> Result<Sexpr, KiCadParseError> {
         self.inner
             .next()
             .ok_or(KiCadParseError::UnexpectedEndOfList)
@@ -194,6 +194,8 @@ impl Parser {
     }
 
     /// Expects the end of the list.
+    ///
+    /// TODO: Take generic arg to extract error information
     pub fn expect_end(mut self) -> Result<(), KiCadParseError> {
         if let Some(next) = self.inner.next() {
             return Err(KiCadParseError::ExpectedEndOfList { found: next });

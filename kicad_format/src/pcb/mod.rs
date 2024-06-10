@@ -4,14 +4,14 @@ use kicad_sexpr::{Sexpr, SexprList};
 
 use crate::{
     common::{
-        footprint::FootprintInlined, pad::Net, zone::Zone, Group, Image, LayerId, PageSettings,
-        PageSize, Property, StandardPageSize, TitleBlock, Uuid, Vec2D,
+        footprint::FootprintInlined, pad::Net, zone::Zone, CoordinatePointList, Group, Image,
+        LayerId, PageSettings, PageSize, Property, StandardPageSize, TitleBlock, Uuid, Vec2D,
     },
     convert::{
         FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName,
         VecToMaybeSexprVec,
     },
-    simple_to_from_string, KiCadParseError, SexprKind,
+    simple_maybe_from_sexpr, simple_to_from_string, KiCadParseError, SexprKind,
 };
 
 use self::{
@@ -46,6 +46,7 @@ pub struct PcbFile {
     pub tracks: Vec<Track>,
     pub zones: Vec<Zone>,
     pub groups: Vec<Group>,
+    pub generators: Vec<PcbGenerator>,
 }
 
 impl Default for PcbFile {
@@ -160,7 +161,7 @@ impl Default for PcbFile {
                             id: StackupLayerId::BoardLayer(LayerId::FMask),
                             kind: "Top Solder Mask".to_string(),
                             color: None,
-                            thickness: Some(0.01),
+                            thickness: Some((0.01, false)),
                             material: None,
                             epsilon_r: None,
                             loss_tangent: None,
@@ -169,7 +170,7 @@ impl Default for PcbFile {
                             id: StackupLayerId::BoardLayer(LayerId::FCu),
                             kind: "copper".to_string(),
                             color: None,
-                            thickness: Some(0.035),
+                            thickness: Some((0.035, false)),
                             material: None,
                             epsilon_r: None,
                             loss_tangent: None,
@@ -178,7 +179,7 @@ impl Default for PcbFile {
                             id: StackupLayerId::Dielectric(1),
                             kind: "core".to_string(),
                             color: None,
-                            thickness: Some(1.51),
+                            thickness: Some((1.51, false)),
                             material: Some("FR4".to_string()),
                             epsilon_r: Some(4.5),
                             loss_tangent: Some(0.02),
@@ -187,7 +188,7 @@ impl Default for PcbFile {
                             id: StackupLayerId::BoardLayer(LayerId::BCu),
                             kind: "copper".to_string(),
                             color: None,
-                            thickness: Some(0.035),
+                            thickness: Some((0.035, false)),
                             material: None,
                             epsilon_r: None,
                             loss_tangent: None,
@@ -196,7 +197,7 @@ impl Default for PcbFile {
                             id: StackupLayerId::BoardLayer(LayerId::BMask),
                             kind: "Bottom Solder Mask".to_string(),
                             color: None,
-                            thickness: Some(0.01),
+                            thickness: Some((0.01, false)),
                             material: None,
                             epsilon_r: None,
                             loss_tangent: None,
@@ -280,6 +281,7 @@ impl Default for PcbFile {
             tracks: Vec::new(),
             zones: Vec::new(),
             groups: Vec::new(),
+            generators: Vec::new(),
         }
     }
 }
@@ -312,6 +314,7 @@ impl FromSexpr for PcbFile {
         let tracks = parser.expect_many::<Track>()?;
         let zones = parser.expect_many::<Zone>()?;
         let groups = parser.expect_many::<Group>()?;
+        let generators = parser.expect_many::<PcbGenerator>()?;
 
         parser.expect_end()?;
 
@@ -332,6 +335,7 @@ impl FromSexpr for PcbFile {
             tracks,
             zones,
             groups,
+            generators,
         })
     }
 }
@@ -365,6 +369,7 @@ impl ToSexpr for PcbFile {
                 &self.tracks.into_sexpr_vec(),
                 &self.zones.into_sexpr_vec(),
                 &self.groups.into_sexpr_vec(),
+                &self.generators.into_sexpr_vec(),
             ]
             .concat(),
         )
@@ -810,5 +815,170 @@ impl ToSexpr for TrackArc {
                 Some(self.uuid.to_sexpr()),
             ],
         )
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[derive(Debug, PartialEq, Clone)]
+pub struct PcbGenerator {
+    pub uuid: Uuid,
+    pub kind: GeneratorKind,
+    pub name: String,
+    pub layer: LayerId,
+    pub locked: bool,
+    pub properties: Vec<GeneratorProperty>,
+    pub members: Vec<String>,
+}
+
+impl FromSexpr for PcbGenerator {
+    fn from_sexpr(mut parser: Parser) -> Result<Self, KiCadParseError> {
+        parser.expect_symbol_matching("generated")?;
+
+        let uuid = parser.expect::<Uuid>()?;
+        let kind = parser.expect_symbol_with_name("type")?.parse()?;
+        let name = parser.expect_string_with_name("name")?;
+        let layer = parser.expect_string_with_name("layer")?.parse()?;
+        let locked = parser.maybe_bool_with_name("locked")?;
+
+        let properties = parser.expect_many::<GeneratorProperty>()?;
+
+        let members = parser.expect_list().map(|mut p| {
+            p.expect_symbol_matching("members")?;
+
+            let mut members = Vec::new();
+
+            while p.peek_next().is_some() {
+                members.push(p.expect_symbol()?)
+            }
+
+            Ok::<_, KiCadParseError>(members)
+        })??;
+
+        Ok(Self {
+            uuid,
+            kind,
+            name,
+            layer,
+            locked,
+            properties,
+            members,
+        })
+    }
+}
+
+simple_maybe_from_sexpr!(PcbGenerator, generated);
+
+impl ToSexpr for PcbGenerator {
+    fn to_sexpr(&self) -> Sexpr {
+        Sexpr::list_with_name(
+            "generated",
+            [
+                &[
+                    Some(self.uuid.to_sexpr()),
+                    Some(Sexpr::symbol_with_name("type", self.kind)),
+                    Some(Sexpr::string_with_name("name", &self.name)),
+                    Some(Sexpr::string_with_name("layer", self.layer)),
+                    self.locked.then(|| Sexpr::bool_with_name("locked", true)),
+                ][..],
+                &self.properties.into_sexpr_vec(),
+                &[Some(Sexpr::list_with_name(
+                    "members",
+                    self.members
+                        .iter()
+                        .map(|m| Some(Sexpr::symbol(m)))
+                        .collect::<Vec<_>>(),
+                ))][..],
+            ]
+            .concat(),
+        )
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[derive(Debug, PartialEq, Clone, Copy)]
+pub enum GeneratorKind {
+    TuningPattern,
+}
+
+simple_to_from_string! {
+    GeneratorKind,
+    tuning_pattern <-> TuningPattern,
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[derive(Debug, PartialEq, Clone)]
+pub struct GeneratorProperty {
+    pub key: String,
+    pub value: GeneratorPropertyValue,
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[derive(Debug, PartialEq, Clone)]
+pub enum GeneratorPropertyValue {
+    Number(f32),
+    Bool(bool),
+    Vector(Vec2D),
+    ShapeLineChain(CoordinatePointList),
+    String(String),
+}
+
+impl FromSexpr for GeneratorProperty {
+    fn from_sexpr(mut parser: Parser) -> Result<Self, KiCadParseError> {
+        let key = parser.expect_symbol()?;
+
+        let value = match parser.expect_next()? {
+            Sexpr::List(l) => {
+                let mut p = Parser::new(l);
+
+                let Some(peeked) = p.peek_symbol() else {
+                    return Err(KiCadParseError::UnexpectedEndOfList);
+                };
+
+                match peeked {
+                    "xy" => GeneratorPropertyValue::Vector(Vec2D::from_sexpr(p)?),
+                    "pts" => {
+                        GeneratorPropertyValue::ShapeLineChain(CoordinatePointList::from_sexpr(p)?)
+                    }
+                    v => {
+                        return Err(
+                            KiCadParseError::invalid_enum_value::<GeneratorPropertyValue>(v),
+                        )
+                    }
+                }
+            }
+            Sexpr::Number(n) => GeneratorPropertyValue::Number(n),
+            Sexpr::String(s) => GeneratorPropertyValue::String(s),
+            Sexpr::Symbol(s) => GeneratorPropertyValue::Bool(match s.as_str() {
+                "yes" => true,
+                "no" => false,
+                v => return Err(KiCadParseError::invalid_enum_value::<bool>(v)),
+            }),
+        };
+
+        Ok(Self { key, value })
+    }
+}
+
+impl MaybeFromSexpr for GeneratorProperty {
+    fn is_present(sexpr: &SexprList) -> bool {
+        sexpr.first_symbol().is_some_and(|s| s != "members")
+    }
+}
+
+impl ToSexpr for GeneratorProperty {
+    fn to_sexpr(&self) -> Sexpr {
+        let value = match &self.value {
+            GeneratorPropertyValue::Number(n) => Sexpr::number(*n),
+            GeneratorPropertyValue::Bool(b) => Sexpr::symbol(if *b { "yes" } else { "no" }),
+            GeneratorPropertyValue::Vector(v) => v.to_sexpr(),
+            GeneratorPropertyValue::ShapeLineChain(c) => c.to_sexpr(),
+            GeneratorPropertyValue::String(s) => Sexpr::string(s),
+        };
+
+        Sexpr::list_with_name(&self.key, [Some(value)])
     }
 }

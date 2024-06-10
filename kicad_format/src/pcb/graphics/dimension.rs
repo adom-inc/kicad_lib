@@ -365,7 +365,7 @@ impl FromSexpr for DimensionStyle {
 impl ToSexpr for DimensionStyle {
     fn to_sexpr(&self) -> Sexpr {
         Sexpr::list_with_name(
-            "format",
+            "style",
             [
                 Some(Sexpr::number_with_name("thickness", self.thickness)),
                 Some(Sexpr::number_with_name("arrow_length", self.arrow_length)),
