@@ -179,7 +179,8 @@ pub struct StackupLayer {
     pub id: StackupLayerId,
     pub kind: String,
     pub color: Option<String>,
-    pub thickness: Option<f32>,
+    /// value, locked
+    pub thickness: Option<(f32, bool)>,
     pub material: Option<String>,
     pub epsilon_r: Option<f32>,
     pub loss_tangent: Option<f32>,
@@ -192,7 +193,15 @@ impl FromSexpr for StackupLayer {
         let id = parser.expect_string()?.parse::<StackupLayerId>()?;
         let kind = parser.expect_string_with_name("type")?;
         let color = parser.maybe_string_with_name("color")?;
-        let thickness = parser.maybe_number_with_name("thickness")?;
+        let thickness = parser
+            .maybe_list_with_name("thickness")
+            .map(|mut p| {
+                let value = p.expect_number()?;
+                let locked = p.maybe_symbol_matching("locked");
+
+                Ok::<_, KiCadParseError>((value, locked))
+            })
+            .transpose()?;
         let material = parser.maybe_string_with_name("material")?;
         let epsilon_r = parser.maybe_number_with_name("epsilon_r")?;
         let loss_tangent = parser.maybe_number_with_name("loss_tangent")?;
@@ -223,8 +232,15 @@ impl ToSexpr for StackupLayer {
                 self.color
                     .as_ref()
                     .map(|c| Sexpr::string_with_name("color", c)),
-                self.thickness
-                    .map(|t| Sexpr::number_with_name("thickness", t)),
+                self.thickness.map(|(value, locked)| {
+                    Sexpr::list_with_name(
+                        "thickness",
+                        [
+                            Some(Sexpr::number(value)),
+                            locked.then(|| Sexpr::symbol("locked")),
+                        ],
+                    )
+                }),
                 self.material
                     .as_ref()
                     .map(|m| Sexpr::string_with_name("material", m)),
