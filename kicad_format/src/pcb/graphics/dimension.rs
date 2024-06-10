@@ -1,9 +1,9 @@
 use kicad_sexpr::Sexpr;
 
 use crate::{
-    common::{LayerId, Uuid, Vec2D},
+    common::{CoordinatePointList, LayerId, Uuid, Vec2D},
     convert::{FromSexpr, Parser, ToSexpr},
-    KiCadParseError,
+    simple_to_from_string, KiCadParseError,
 };
 
 use super::text::PcbText;
@@ -48,8 +48,55 @@ pub struct PcbDimension {
 }
 
 impl FromSexpr for PcbDimension {
-    fn from_sexpr(_parser: Parser) -> Result<Self, KiCadParseError> {
-        todo!("impl FromSexpr for PcbDimension")
+    fn from_sexpr(mut parser: Parser) -> Result<Self, KiCadParseError> {
+        parser.expect_symbol_matching("dimension")?;
+
+        let kind = parser.expect_symbol_with_name("type")?.parse()?;
+        let locked = parser.maybe_bool_with_name("locked")?;
+        let layer = parser.expect_string_with_name("layer")?.parse()?;
+        let uuid = parser.expect::<Uuid>()?;
+        let points = parser.expect::<CoordinatePointList>().and_then(|v| {
+            v.try_into()
+                .map_err(|v: Vec<_>| KiCadParseError::IncorrectNumberOfPoints {
+                    expected: 2,
+                    found: v.len(),
+                })
+        })?;
+        let height = (kind == DimensionKind::Aligned)
+            .then(|| parser.expect_number_with_name("height"))
+            .transpose()?;
+        let leader_length = (kind == DimensionKind::Radial)
+            .then(|| parser.expect_number_with_name("leader_length"))
+            .transpose()?;
+        let orientation = (kind == DimensionKind::Orthogonal)
+            .then(|| parser.expect_number_with_name("orientation"))
+            .transpose()?;
+        let (text, format) = (kind != DimensionKind::Center)
+            .then(|| {
+                let text = parser.expect::<PcbText>()?;
+                let format = parser.expect::<DimensionFormat>()?;
+
+                Ok::<_, KiCadParseError>((Some(text), Some(format)))
+            })
+            .transpose()?
+            .unwrap_or((None, None));
+        let style = parser.expect::<DimensionStyle>()?;
+
+        parser.expect_end()?;
+
+        Ok(Self {
+            kind,
+            locked,
+            layer,
+            uuid,
+            points,
+            height,
+            orientation,
+            leader_length,
+            text,
+            format,
+            style,
+        })
     }
 }
 
@@ -71,16 +118,25 @@ pub enum DimensionKind {
     Radial,
 }
 
+simple_to_from_string! {
+    DimensionKind,
+    aligned <-> Aligned,
+    leader <-> Leader,
+    center <-> Center,
+    orthogonal <-> Orthogonal,
+    radial <-> Radial,
+}
+
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
 #[derive(Debug, PartialEq, Clone)]
 pub struct DimensionFormat {
-    /// The optional `prefix` token attribute defines the string to add to the
+    /// The `prefix` token attribute defines the string to add to the
     /// beginning of the dimension text.
-    pub prefix: Option<String>,
+    pub prefix: String,
     /// The optional `suffix` token attribute defines the string to add to the
     /// end of the dimension text.
-    pub suffix: Option<String>,
+    pub suffix: String,
     /// The units token attribute defines the dimension units used to display
     /// the dimension text. Valid units are as follows:
     ///   0 - Inches.
@@ -105,9 +161,49 @@ pub struct DimensionFormat {
     /// The optional `override_value` token attribute defines the text to
     /// substitute for the actual physical dimension.
     pub override_value: Option<String>,
-    /// The optional `suppress_zeros` token removes all trailing zeros from the
+    /// The optional `suppress_zeroes` token removes all trailing zeros from the
     /// dimension text.
-    pub suppress_zeros: bool,
+    pub suppress_zeroes: bool,
+}
+
+impl FromSexpr for DimensionFormat {
+    fn from_sexpr(mut parser: Parser) -> Result<Self, KiCadParseError> {
+        parser.expect_symbol_matching("format")?;
+
+        let prefix = parser.expect_string_with_name("prefix")?;
+        let suffix = parser.expect_string_with_name("suffix")?;
+        let units = parser
+            .expect_number_with_name("units")
+            .map(|n| n as u8)
+            .map(DimensionUnits::try_from)??;
+        let units_format = parser
+            .expect_number_with_name("units_format")
+            .map(|n| n as u8)
+            .map(DimensionUnitsFormat::try_from)??;
+        let precision = parser
+            .expect_number_with_name("precision")
+            .map(|n| n as u8)?;
+        let override_value = parser.maybe_string_with_name("override_value")?;
+        let suppress_zeroes = parser.maybe_symbol_matching("suppress_zeroes");
+
+        parser.expect_end()?;
+
+        Ok(Self {
+            prefix,
+            suffix,
+            units,
+            units_format,
+            precision,
+            override_value,
+            suppress_zeroes,
+        })
+    }
+}
+
+impl ToSexpr for DimensionFormat {
+    fn to_sexpr(&self) -> Sexpr {
+        todo!("impl ToSexpr for DimensionFormat")
+    }
 }
 
 /// See `units` field in [`DimensionUnits`].
@@ -123,6 +219,20 @@ pub enum DimensionUnits {
     Automatic = 3,
 }
 
+impl TryFrom<u8> for DimensionUnits {
+    type Error = KiCadParseError;
+
+    fn try_from(n: u8) -> Result<Self, Self::Error> {
+        Ok(match n {
+            0 => Self::Inches,
+            1 => Self::Mils,
+            2 => Self::Millimeters,
+            3 => Self::Automatic,
+            _ => return Err(KiCadParseError::invalid_enum_value::<Self>(n.to_string())),
+        })
+    }
+}
+
 /// See `units_format` field in [`DimensionFormat`].
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
@@ -132,6 +242,19 @@ pub enum DimensionUnitsFormat {
     NoSuffix = 0,
     BareSuffix = 1,
     WrapSuffixInParenthesis = 2,
+}
+
+impl TryFrom<u8> for DimensionUnitsFormat {
+    type Error = KiCadParseError;
+
+    fn try_from(n: u8) -> Result<Self, Self::Error> {
+        Ok(match n {
+            0 => Self::NoSuffix,
+            1 => Self::BareSuffix,
+            2 => Self::WrapSuffixInParenthesis,
+            _ => return Err(KiCadParseError::invalid_enum_value::<Self>(n.to_string())),
+        })
+    }
 }
 
 /// https://dev-docs.kicad.org/en/file-formats/sexpr-intro/#_dimension_style
@@ -162,14 +285,51 @@ pub struct DimensionStyle {
     ///   2 - Circle.
     ///   3 - Rounded rectangle.
     pub text_frame: Option<TextFrameKind>,
-    /// The optional `extension_offset` token attribute defines the distance
+    /// The `extension_offset` token attribute defines the distance
     /// from feature points to extension line start.
-    pub extension_offset: Option<f32>,
+    pub extension_offset: f32,
     /// The optional keep_text_aligned token indicates that the dimension text
     /// should be kept in line with the dimension crossbar. When not defined,
     /// the dimension text is shown horizontally regardless of the orientation
     /// of the dimension.
     pub keep_text_aligned: bool,
+}
+
+impl FromSexpr for DimensionStyle {
+    fn from_sexpr(mut parser: Parser) -> Result<Self, KiCadParseError> {
+        parser.expect_symbol_matching("style")?;
+
+        let thickness = parser.expect_number_with_name("thickness")?;
+        let arrow_length = parser.expect_number_with_name("arrow_length")?;
+        let text_position_mode = parser
+            .expect_number_with_name("text_position_mode")
+            .map(|n| n as u8)
+            .map(DimensionTextPositionMode::try_from)??;
+        let extension_height = parser.maybe_number_with_name("extension_height")?;
+        let text_frame = parser
+            .maybe_number_with_name("text_frame")?
+            .map(|n| n as u8)
+            .map(TextFrameKind::try_from)
+            .transpose()?;
+        let extension_offset = parser.expect_number_with_name("extension_offset")?;
+        let keep_text_aligned = parser.maybe_symbol_matching("keep_text_aligned");
+
+        Ok(Self {
+            thickness,
+            arrow_length,
+            text_position_mode,
+            extension_height,
+            text_frame,
+            extension_offset,
+            keep_text_aligned,
+        })
+    }
+}
+
+impl ToSexpr for DimensionStyle {
+    fn to_sexpr(&self) -> Sexpr {
+        todo!("impl ToSexpr for DimensionStyle")
+    }
 }
 
 /// See `text_position_mode` field in [`DimensionStyle`].
@@ -183,6 +343,19 @@ pub enum DimensionTextPositionMode {
     Manual = 2,
 }
 
+impl TryFrom<u8> for DimensionTextPositionMode {
+    type Error = KiCadParseError;
+
+    fn try_from(n: u8) -> Result<Self, Self::Error> {
+        Ok(match n {
+            0 => Self::Outside,
+            1 => Self::Inline,
+            2 => Self::Manual,
+            _ => return Err(KiCadParseError::invalid_enum_value::<Self>(n.to_string())),
+        })
+    }
+}
+
 /// See `text_frame` field in [`DimensionStyle`].
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
@@ -193,4 +366,18 @@ pub enum TextFrameKind {
     Rectangle = 1,
     Circle = 2,
     RoundedRectangle = 3,
+}
+
+impl TryFrom<u8> for TextFrameKind {
+    type Error = KiCadParseError;
+
+    fn try_from(n: u8) -> Result<Self, Self::Error> {
+        Ok(match n {
+            0 => Self::NoFrame,
+            1 => Self::Rectangle,
+            2 => Self::Circle,
+            3 => Self::RoundedRectangle,
+            _ => return Err(KiCadParseError::invalid_enum_value::<Self>(n.to_string())),
+        })
+    }
 }
