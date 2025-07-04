@@ -3,6 +3,7 @@ use std::path::Path;
 use kicad_format::{
     convert::{FromSexpr, Parser, ToSexpr},
     footprint_library::FootprintLibraryFile,
+    netlist::NetlistFile,
     pcb::PcbFile,
     schematic::SchematicFile,
     symbol_library::SymbolLibraryFile,
@@ -80,4 +81,9 @@ fn test_schematic() {
 #[test]
 fn test_pcb() {
     test_files_in_dir::<PcbFile, _>("./tests/pcb")
+}
+
+#[test]
+fn test_netlist() {
+    test_files_in_dir::<NetlistFile, _>("./tests/netlist")
 }

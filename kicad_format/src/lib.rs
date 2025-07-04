@@ -2,6 +2,7 @@ use common::LayerId;
 use convert::{FromSexpr, Parser, ToSexpr};
 use footprint_library::FootprintLibraryFile;
 use kicad_sexpr::Sexpr;
+use netlist::NetlistFile;
 use pcb::PcbFile;
 use schematic::SchematicFile;
 use symbol_library::SymbolLibraryFile;
@@ -10,6 +11,7 @@ use thiserror::Error;
 pub mod common;
 pub mod convert;
 pub mod footprint_library;
+pub mod netlist;
 pub mod pcb;
 pub mod schematic;
 pub mod symbol_library;
@@ -190,4 +192,14 @@ pub fn parse_pcb_file(input: &str) -> Result<PcbFile, KiCadParseError> {
 /// Serializes a PCB file to a string.
 pub fn serialize_pcb_file(pcb: PcbFile) -> String {
     serialize_file(pcb)
+}
+
+/// Parses a Netlist file from a string.
+pub fn parse_netlist_file(input: &str) -> Result<NetlistFile, KiCadParseError> {
+    parse_file(input)
+}
+
+/// Serializes a Netlist file to a string.
+pub fn serialize_netlist_file(netlist: NetlistFile) -> String {
+    serialize_file(netlist)
 }
