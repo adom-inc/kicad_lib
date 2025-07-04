@@ -1288,8 +1288,8 @@ pub struct Group {
     pub name: String,
     /// UNDOCUMENTED: The locked token specifies if the group is locked.
     pub locked: bool,
-    /// The `id` token attribute defines the unique identifier of the group.
-    pub id: Uuid,
+    /// The `uuid` token attribute defines the unique identifier of the group.
+    pub uuid: Uuid,
     /// The `members` token attributes define a list of unique identifiers of
     /// the objects belonging to the group.
     pub members: Vec<Uuid>,
@@ -1301,10 +1301,10 @@ impl FromSexpr for Group {
 
         let name = parser.expect_string()?;
         let locked = parser.maybe_symbol_matching("locked");
-        let id = parser.expect_with_name::<Uuid>("id")?;
+        let uuid = parser.expect_with_name::<Uuid>("uuid")?;
         let members = parser.expect_list_with_name("members").and_then(|mut p| {
             let members = p
-                .expect_many_symbols()?
+                .expect_many_strings()?
                 .into_iter()
                 .map(|s| s.parse::<uuid::Uuid>())
                 .collect::<Result<Vec<_>, _>>()?
@@ -1322,7 +1322,7 @@ impl FromSexpr for Group {
         Ok(Self {
             name,
             locked,
-            id,
+            uuid,
             members,
         })
     }
@@ -1337,13 +1337,13 @@ impl ToSexpr for Group {
             [
                 Some(Sexpr::string(&self.name)),
                 self.locked.then(|| Sexpr::symbol("locked")),
-                Some(self.id.to_sexpr_with_name("id")),
+                Some(self.uuid.to_sexpr_with_name("uuid")),
                 Some(Sexpr::list_with_name(
                     "members",
                     self.members
                         .iter()
                         .map(|u| u.0)
-                        .map(|u: uuid::Uuid| Sexpr::symbol(u.to_string()))
+                        .map(|u: uuid::Uuid| Sexpr::string(u.to_string()))
                         .map(Option::Some)
                         .collect::<Vec<_>>(),
                 )),
