@@ -297,7 +297,7 @@ fn parse_sexpr_string(input: &str) -> IResult<&str, Sexpr> {
 
 fn parse_sexpr_symbol(input: &str) -> IResult<&str, Sexpr> {
     let (input, chars) = many1(satisfy(|c| {
-        c.is_ascii_alphanumeric() || c == '_' || c == '-'
+        c.is_ascii_alphanumeric() || c == '_' || c == '-' || c == '+' || c == '/' || c == '='
     }))(input)?;
 
     Ok((input, Sexpr::Symbol(chars.iter().collect())))
