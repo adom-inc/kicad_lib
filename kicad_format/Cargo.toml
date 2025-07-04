@@ -9,15 +9,17 @@ license = "MIT"
 [dependencies]
 kicad_sexpr = { path = "../kicad_sexpr" }
 regex = "1.10.3"
-serde = { version = "1.0.130", features = ["derive"], optional = true }
 thiserror = "1.0.56"
-uuid = { version = "1.8.0", features = ["v4", "fast-rng"] }
+uuid = { version = "1.8.0", features = ["v4"] }
 
+serde = { version = "1.0.130", features = ["derive"], optional = true }
 
 [dev-dependencies]
 ansi_term = "0.12.1"
 diff = "0.1.13"
 
-
 [features]
+default = ["uuid/fast-rng"]
+
 serde = ["dep:serde", "uuid/serde"]
+js = ["uuid/js"]
