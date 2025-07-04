@@ -458,6 +458,7 @@ pub struct FootprintAttributes {
     pub exclude_from_pos_files: bool,
     pub exclude_from_bom: bool,
     pub allow_missing_courtyard: bool,
+    pub do_not_populate: bool,
     pub allow_solder_mask_bridges: bool,
 }
 
@@ -471,6 +472,7 @@ impl FromSexpr for FootprintAttributes {
         let exclude_from_pos_files = parser.maybe_symbol_matching("exclude_from_pos_files");
         let exclude_from_bom = parser.maybe_symbol_matching("exclude_from_bom");
         let allow_missing_courtyard = parser.maybe_symbol_matching("allow_missing_courtyard");
+        let do_not_populate = parser.maybe_symbol_matching("dnp");
         let allow_solder_mask_bridges = parser.maybe_symbol_matching("allow_soldermask_bridges");
 
         parser.expect_end()?;
@@ -482,6 +484,7 @@ impl FromSexpr for FootprintAttributes {
             exclude_from_pos_files,
             exclude_from_bom,
             allow_missing_courtyard,
+            do_not_populate,
             allow_solder_mask_bridges,
         })
     }
@@ -503,6 +506,8 @@ impl ToSexpr for FootprintAttributes {
                     .then(|| Sexpr::symbol("exclude_from_bom")),
                 self.allow_missing_courtyard
                     .then(|| Sexpr::symbol("allow_missing_courtyard")),
+                self.do_not_populate
+                    .then(|| Sexpr::symbol("dnp")),
                 self.allow_solder_mask_bridges
                     .then(|| Sexpr::symbol("allow_soldermask_bridges")),
             ],
