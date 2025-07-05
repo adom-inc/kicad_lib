@@ -1,0 +1,16 @@
+[package]
+name = "kicad_sexpr_lexer"
+version = "0.1.0"
+edition = "2024"
+description = "A zero-cpoy lexer to tokenize the KiCad S-Expression format"
+
+[dependencies]
+paste = "1.0.15"
+serde = { version = "1.0.130", features = ["derive"], optional = true }
+thiserror = "2.0.12"
+
+[dev-dependencies]
+strum = { version = "0.27", features = ["derive"] }
+
+[features]
+serde = ["dep:serde"]
