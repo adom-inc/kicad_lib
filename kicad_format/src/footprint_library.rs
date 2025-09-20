@@ -9,7 +9,7 @@ use crate::{
         zone::Zone,
         Group, LayerId, Property,
     },
-    convert::{FromSexpr, Parser, ToSexpr, VecToMaybeSexprVec},
+    convert::{FromSexpr, Parser, SerializationContext, ToSexpr, VecToMaybeSexprVec},
     KiCadParseError,
 };
 
@@ -121,7 +121,7 @@ impl FromSexpr for FootprintLibraryFile {
 }
 
 impl ToSexpr for FootprintLibraryFile {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "footprint",
             [
@@ -137,7 +137,7 @@ impl ToSexpr for FootprintLibraryFile {
                         .as_ref()
                         .map(|s| Sexpr::string_with_name("tags", s)),
                 ],
-                self.properties.into_sexpr_vec(),
+                self.properties.into_sexpr_vec(context),
                 vec![
                     self.solder_mask_margin
                         .map(|n| Sexpr::number_with_name("solder_mask_margin", n)),
@@ -149,7 +149,7 @@ impl ToSexpr for FootprintLibraryFile {
                         .map(|n| Sexpr::number_with_name("clearance", n)),
                     self.zone_connect
                         .map(|n| Sexpr::number_with_name("zone_connect", n as u8 as f32)),
-                    self.attributes.as_ref().map(ToSexpr::to_sexpr),
+                    self.attributes.as_ref().map(|i| i.to_sexpr(context)),
                     self.private_layers.as_ref().map(|l| {
                         Sexpr::list_with_name(
                             "private_layers",
@@ -171,11 +171,11 @@ impl ToSexpr for FootprintLibraryFile {
                         )
                     }),
                 ],
-                self.graphics_items.into_sexpr_vec(),
-                self.pads.into_sexpr_vec(),
-                self.keep_out_zones.into_sexpr_vec(),
-                self.groups.into_sexpr_vec(),
-                self.models.into_sexpr_vec(),
+                self.graphics_items.into_sexpr_vec(context),
+                self.pads.into_sexpr_vec(context),
+                self.keep_out_zones.into_sexpr_vec(context),
+                self.groups.into_sexpr_vec(context),
+                self.models.into_sexpr_vec(context),
             ]
             .concat(),
         )

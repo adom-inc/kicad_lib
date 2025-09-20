@@ -6,8 +6,8 @@ use kicad_sexpr::{Sexpr, SexprList};
 
 use crate::{
     convert::{
-        FromSexpr, FromSexprWithName, MaybeFromSexpr, MaybeFromSexprWithName, Parser, SexprListExt,
-        ToSexpr, ToSexprWithName, VecToMaybeSexprVec,
+        FromSexpr, FromSexprWithName, MaybeFromSexpr, MaybeFromSexprWithName, Parser,
+        SerializationContext, SexprListExt, ToSexpr, ToSexprWithName, VecToMaybeSexprVec,
     },
     simple_maybe_from_sexpr, simple_to_from_string, KiCadParseError,
 };
@@ -51,7 +51,7 @@ impl FromSexpr for Position {
 }
 
 impl ToSexpr for Position {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "at",
             [
@@ -83,8 +83,8 @@ impl FromSexpr for CoordinatePointList {
 simple_maybe_from_sexpr!(CoordinatePointList, pts);
 
 impl ToSexpr for CoordinatePointList {
-    fn to_sexpr(&self) -> Sexpr {
-        Sexpr::list_with_name("pts", self.into_sexpr_vec())
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
+        Sexpr::list_with_name("pts", self.into_sexpr_vec(context))
     }
 }
 
@@ -131,13 +131,13 @@ impl FromSexprWithName for Vec2D {
 impl MaybeFromSexprWithName for Vec2D {}
 
 impl ToSexpr for Vec2D {
-    fn to_sexpr(&self) -> Sexpr {
-        self.to_sexpr_with_name("xy")
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
+        self.to_sexpr_with_name("xy", context)
     }
 }
 
 impl ToSexprWithName for Vec2D {
-    fn to_sexpr_with_name(&self, name: &str) -> Sexpr {
+    fn to_sexpr_with_name(&self, name: &str, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             name,
             [Some(Sexpr::number(self.x)), Some(Sexpr::number(self.y))],
@@ -178,13 +178,13 @@ impl FromSexpr for Vec3D {
 }
 
 impl ToSexpr for Vec3D {
-    fn to_sexpr(&self) -> Sexpr {
-        self.to_sexpr_with_name("xyz")
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
+        self.to_sexpr_with_name("xyz", context)
     }
 }
 
 impl ToSexprWithName for Vec3D {
-    fn to_sexpr_with_name(&self, name: &str) -> Sexpr {
+    fn to_sexpr_with_name(&self, name: &str, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             name,
             [
@@ -255,13 +255,13 @@ impl FromSexpr for Stroke {
 simple_maybe_from_sexpr!(Stroke, stroke);
 
 impl ToSexpr for Stroke {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "stroke",
             [
                 Some(Sexpr::number_with_name("width", self.width)),
                 Some(Sexpr::symbol_with_name("type", self.kind)),
-                self.color.as_ref().map(ToSexpr::to_sexpr),
+                self.color.as_ref().map(|i| i.to_sexpr(context)),
             ],
         )
     }
@@ -325,7 +325,7 @@ impl FromSexpr for Color {
 simple_maybe_from_sexpr!(Color, color);
 
 impl ToSexpr for Color {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "color",
             [
@@ -398,7 +398,7 @@ impl FromSexpr for TextEffects {
 
         let font = parser.expect::<Font>()?;
         let justify = parser.maybe::<Justify>()?;
-        let hide = parser.maybe_symbol_matching("hide");
+        let hide = parser.maybe_symbol_or_boolean_with_name("hide");
         let href = parser.maybe_string_with_name("href")?;
 
         parser.expect_end()?;
@@ -413,13 +413,19 @@ impl FromSexpr for TextEffects {
 }
 
 impl ToSexpr for TextEffects {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
+        let hide = if context.explicit_booleans {
+            self.hide.then(|| Sexpr::symbol_with_name("hide", "yes"))
+        } else {
+            self.hide.then(|| Sexpr::symbol("hide"))
+        };
+
         Sexpr::list_with_name(
             "effects",
             [
-                Some(self.font.to_sexpr()),
-                self.justify.as_ref().map(ToSexpr::to_sexpr),
-                self.hide.then(|| Sexpr::symbol("hide")),
+                Some(self.font.to_sexpr(context)),
+                self.justify.as_ref().map(|i| i.to_sexpr(context)),
+                hide,
                 self.href
                     .as_ref()
                     .map(|h| Sexpr::string_with_name("href", h)),
@@ -479,21 +485,21 @@ impl FromSexpr for Font {
 }
 
 impl ToSexpr for Font {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "font",
             [
                 self.face
                     .as_ref()
                     .map(|f| Sexpr::string_with_name("face", f)),
-                Some(self.size.to_sexpr_with_name("size")),
+                Some(self.size.to_sexpr_with_name("size", context)),
                 self.line_spacing
                     .map(|l| Sexpr::number_with_name("line_spacing", l)),
                 self.thickness
                     .map(|t| Sexpr::number_with_name("thickness", t)),
                 self.bold.then(|| Sexpr::symbol("bold")),
                 self.italic.then(|| Sexpr::symbol("italic")),
-                self.color.as_ref().map(ToSexpr::to_sexpr),
+                self.color.as_ref().map(|i| i.to_sexpr(context)),
             ],
         )
     }
@@ -535,7 +541,7 @@ impl FromSexpr for Justify {
 simple_maybe_from_sexpr!(Justify, justify);
 
 impl ToSexpr for Justify {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "justify",
             [
@@ -615,7 +621,7 @@ impl FromSexpr for PageSettings {
 }
 
 impl ToSexpr for PageSettings {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "paper",
             [
@@ -743,7 +749,7 @@ impl FromSexpr for TitleBlock {
 simple_maybe_from_sexpr!(TitleBlock, title_block);
 
 impl ToSexpr for TitleBlock {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "title_block",
             [
@@ -761,7 +767,7 @@ impl ToSexpr for TitleBlock {
                         .as_ref()
                         .map(|c| Sexpr::string_with_name("company", c)),
                 ][..],
-                &self.comments.into_sexpr_vec(),
+                &self.comments.into_sexpr_vec(context),
             ]
             .concat(),
         )
@@ -793,7 +799,7 @@ impl FromSexpr for Comment {
 simple_maybe_from_sexpr!(Comment, comment);
 
 impl ToSexpr for Comment {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "comment",
             [
@@ -833,7 +839,7 @@ impl FromSexpr for Property {
 simple_maybe_from_sexpr!(Property, property);
 
 impl ToSexpr for Property {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "property",
             [
@@ -888,7 +894,14 @@ impl FromSexprWithName for Uuid {
     fn from_sexpr_with_name(mut parser: Parser, name: &str) -> Result<Self, KiCadParseError> {
         parser.expect_symbol_matching(name)?;
 
-        let uuid = parser.expect_symbol()?.parse()?;
+        let uuid_str = match parser.peek_next() {
+            Some(Sexpr::String(_)) => parser.expect_string(),
+            Some(Sexpr::Symbol(_)) => parser.expect_symbol(),
+            _ => Err(KiCadParseError::UnexpectedSexprType {
+                expected: crate::SexprKind::Symbol,
+            }),
+        };
+        let uuid = uuid_str?.parse()?;
 
         Ok(Self(uuid))
     }
@@ -897,14 +910,18 @@ impl FromSexprWithName for Uuid {
 impl MaybeFromSexprWithName for Uuid {}
 
 impl ToSexpr for Uuid {
-    fn to_sexpr(&self) -> Sexpr {
-        self.to_sexpr_with_name("uuid")
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
+        self.to_sexpr_with_name("uuid", context)
     }
 }
 
 impl ToSexprWithName for Uuid {
-    fn to_sexpr_with_name(&self, name: &str) -> Sexpr {
-        Sexpr::list_with_name(name, [Some(Sexpr::symbol(self.to_string()))])
+    fn to_sexpr_with_name(&self, name: &str, context: SerializationContext) -> Sexpr {
+        if context.uuids_as_strings {
+            Sexpr::list_with_name(name, [Some(Sexpr::string(self.to_string()))])
+        } else {
+            Sexpr::list_with_name(name, [Some(Sexpr::symbol(self.to_string()))])
+        }
     }
 }
 
@@ -984,14 +1001,14 @@ impl FromSexpr for Image {
 simple_maybe_from_sexpr!(Image, image);
 
 impl ToSexpr for Image {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "image",
             [
-                Some(self.position.to_sexpr()),
+                Some(self.position.to_sexpr(context)),
                 self.layer.map(|l| Sexpr::string_with_name("layer", l)),
                 self.scale.map(|s| Sexpr::number_with_name("scale", s)),
-                self.unique_id.as_ref().map(ToSexpr::to_sexpr),
+                self.unique_id.as_ref().map(|i| i.to_sexpr(context)),
                 Some(Sexpr::string(&self.data)),
             ],
         )
@@ -1331,13 +1348,13 @@ impl FromSexpr for Group {
 simple_maybe_from_sexpr!(Group, group);
 
 impl ToSexpr for Group {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "group",
             [
                 Some(Sexpr::string(&self.name)),
                 self.locked.then(|| Sexpr::symbol("locked")),
-                Some(self.id.to_sexpr_with_name("id")),
+                Some(self.id.to_sexpr_with_name("id", context)),
                 Some(Sexpr::list_with_name(
                     "members",
                     self.members

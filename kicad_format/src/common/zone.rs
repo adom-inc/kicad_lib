@@ -5,7 +5,10 @@ use std::vec;
 use kicad_sexpr::Sexpr;
 
 use crate::{
-    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName, VecToMaybeSexprVec},
+    convert::{
+        FromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr, ToSexprWithName,
+        VecToMaybeSexprVec,
+    },
     simple_maybe_from_sexpr, simple_to_from_string, KiCadParseError,
 };
 
@@ -138,7 +141,7 @@ impl FromSexpr for Zone {
 simple_maybe_from_sexpr!(Zone, zone);
 
 impl ToSexpr for Zone {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         let layer_or_layers = if self.layers.len() == 1 && !self.layers[0].is_wildcard() {
             Sexpr::string_with_name("layer", self.layers[0])
         } else {
@@ -161,11 +164,11 @@ impl ToSexpr for Zone {
                     Some(Sexpr::number_with_name("net", self.net_number as f32)),
                     Some(Sexpr::string_with_name("net_name", &self.net_name)),
                     Some(layer_or_layers),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                    Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
                     self.name
                         .as_ref()
                         .map(|name| Sexpr::string_with_name("name", name)),
-                    Some(self.hatch.to_sexpr()),
+                    Some(self.hatch.to_sexpr(context)),
                     self.priority
                         .map(|p| Sexpr::number_with_name("priority", p as f32)),
                     self.tear_drop_kind.map(|k| {
@@ -178,7 +181,7 @@ impl ToSexpr for Zone {
                             .map(Option::Some),
                         )
                     }),
-                    Some(self.connect_pads.to_sexpr()),
+                    Some(self.connect_pads.to_sexpr(context)),
                     Some(Sexpr::number_with_name("min_thickness", self.min_thickness)),
                     Some(Sexpr::symbol_with_name(
                         "filled_areas_thickness",
@@ -188,14 +191,14 @@ impl ToSexpr for Zone {
                             "no"
                         },
                     )),
-                    self.keep_out_settings.as_ref().map(ToSexpr::to_sexpr),
-                    Some(self.fill_settings.to_sexpr()),
+                    self.keep_out_settings.as_ref().map(|i| i.to_sexpr(context)),
+                    Some(self.fill_settings.to_sexpr(context)),
                     self.polygon
                         .as_ref()
-                        .map(|p| Sexpr::list_with_name("polygon", [Some(p.to_sexpr())])),
+                        .map(|p| Sexpr::list_with_name("polygon", [Some(p.to_sexpr(context))])),
                 ],
-                self.fill_polygons.into_sexpr_vec(),
-                self.fill_segments.into_sexpr_vec(),
+                self.fill_polygons.into_sexpr_vec(context),
+                self.fill_segments.into_sexpr_vec(context),
             ]
             .concat(),
         )
@@ -224,7 +227,7 @@ impl FromSexpr for Hatch {
 }
 
 impl ToSexpr for Hatch {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "hatch",
             [
@@ -290,7 +293,7 @@ impl FromSexpr for PadConnection {
 }
 
 impl ToSexpr for PadConnection {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "connect_pads",
             [
@@ -353,7 +356,7 @@ impl FromSexpr for KeepOutSettings {
 simple_maybe_from_sexpr!(KeepOutSettings, keepout);
 
 impl ToSexpr for KeepOutSettings {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "keepout",
             [
@@ -462,7 +465,7 @@ impl FromSexpr for FillSettings {
 }
 
 impl ToSexpr for FillSettings {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "fill",
             [
@@ -625,13 +628,13 @@ impl FromSexpr for FilledPolygon {
 simple_maybe_from_sexpr!(FilledPolygon, filled_polygon);
 
 impl ToSexpr for FilledPolygon {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "filled_polygon",
             [
                 Some(Sexpr::string_with_name("layer", self.layer)),
                 self.island.then(|| Sexpr::list_with_name("island", [])),
-                Some(self.polygon.to_sexpr()),
+                Some(self.polygon.to_sexpr(context)),
             ],
         )
     }
@@ -663,12 +666,12 @@ impl FromSexpr for FilledSegments {
 simple_maybe_from_sexpr!(FilledSegments, fill_segments);
 
 impl ToSexpr for FilledSegments {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "fill_segments",
             [
                 Some(Sexpr::string_with_name("layer", self.layer)),
-                Some(self.segments.to_sexpr()),
+                Some(self.segments.to_sexpr(context)),
             ],
         )
     }

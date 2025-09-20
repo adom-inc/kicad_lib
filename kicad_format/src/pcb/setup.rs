@@ -6,7 +6,10 @@ use kicad_sexpr::Sexpr;
 
 use crate::{
     common::{LayerId, Vec2D},
-    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName, VecToMaybeSexprVec},
+    convert::{
+        FromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr, ToSexprWithName,
+        VecToMaybeSexprVec,
+    },
     simple_maybe_from_sexpr, simple_to_from_string, KiCadParseError,
 };
 
@@ -68,11 +71,11 @@ impl FromSexpr for BoardSetup {
 }
 
 impl ToSexpr for BoardSetup {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "setup",
             [
-                self.stackup.as_ref().map(ToSexpr::to_sexpr),
+                self.stackup.as_ref().map(|i| i.to_sexpr(context)),
                 Some(Sexpr::number_with_name(
                     "pad_to_mask_clearance",
                     self.pad_to_mask_clearance,
@@ -88,11 +91,11 @@ impl ToSexpr for BoardSetup {
                 }),
                 self.aux_axis_origin
                     .as_ref()
-                    .map(|a| a.to_sexpr_with_name("aux_axis_origin")),
+                    .map(|a| a.to_sexpr_with_name("aux_axis_origin", context)),
                 self.grid_origin
                     .as_ref()
-                    .map(|g| g.to_sexpr_with_name("grid_origin")),
-                Some(self.plot_options.to_sexpr()),
+                    .map(|g| g.to_sexpr_with_name("grid_origin", context)),
+                Some(self.plot_options.to_sexpr(context)),
             ],
         )
     }
@@ -161,11 +164,11 @@ impl FromSexpr for BoardStackup {
 simple_maybe_from_sexpr!(BoardStackup, stackup);
 
 impl ToSexpr for BoardStackup {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "stackup",
             [
-                &self.layers.into_sexpr_vec(),
+                &self.layers.into_sexpr_vec(context),
                 &[
                     self.copper_finish
                         .as_ref()
@@ -239,11 +242,11 @@ impl FromSexpr for StackupLayer {
 simple_maybe_from_sexpr!(StackupLayer, layer);
 
 impl ToSexpr for StackupLayer {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "layer",
             [
-                Some(self.id.to_sexpr()),
+                Some(self.id.to_sexpr(context)),
                 Some(Sexpr::string_with_name("type", &self.kind)),
                 self.color
                     .as_ref()
@@ -298,7 +301,7 @@ impl FromStr for StackupLayerId {
 }
 
 impl ToSexpr for StackupLayerId {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::string(match self {
             StackupLayerId::BoardLayer(layer_id) => (*layer_id).into(),
             StackupLayerId::Dielectric(id) => format!("dielectric {}", id),
@@ -523,7 +526,7 @@ impl FromSexpr for PcbPlotOptions {
 
 #[allow(deprecated)]
 impl ToSexpr for PcbPlotOptions {
-    fn to_sexpr(&self) -> kicad_sexpr::Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> kicad_sexpr::Sexpr {
         Sexpr::list_with_name(
             "pcbplotparams",
             [

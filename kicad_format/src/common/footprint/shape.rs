@@ -4,7 +4,10 @@ use kicad_sexpr::{Sexpr, SexprList};
 
 use crate::{
     common::{CoordinatePointList, LayerId, SimpleFillMode, Stroke, Uuid, Vec2D},
-    convert::{FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName},
+    convert::{
+        FromSexpr, MaybeFromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr,
+        ToSexprWithName,
+    },
     KiCadParseError,
 };
 
@@ -160,50 +163,52 @@ impl MaybeFromSexpr for FootprintShape {
 }
 
 impl ToSexpr for FootprintShape {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         let (name, elements, fill) = match &self.kind {
             FootprintShapeKind::Line(line) => (
                 "fp_line",
                 vec![
-                    line.start.to_sexpr_with_name("start"),
-                    line.end.to_sexpr_with_name("end"),
+                    line.start.to_sexpr_with_name("start", context),
+                    line.end.to_sexpr_with_name("end", context),
                 ],
                 None,
             ),
             FootprintShapeKind::Rectangle(rect) => (
                 "fp_rect",
                 vec![
-                    rect.start.to_sexpr_with_name("start"),
-                    rect.end.to_sexpr_with_name("end"),
+                    rect.start.to_sexpr_with_name("start", context),
+                    rect.end.to_sexpr_with_name("end", context),
                 ],
                 Some(rect.fill),
             ),
             FootprintShapeKind::Circle(circle) => (
                 "fp_circle",
                 vec![
-                    circle.center.to_sexpr_with_name("center"),
-                    circle.end.to_sexpr_with_name("end"),
+                    circle.center.to_sexpr_with_name("center", context),
+                    circle.end.to_sexpr_with_name("end", context),
                 ],
                 Some(circle.fill),
             ),
             FootprintShapeKind::Arc(arc) => (
                 "fp_arc",
                 vec![
-                    arc.start.to_sexpr_with_name("start"),
-                    arc.midpoint.to_sexpr_with_name("mid"),
-                    arc.end.to_sexpr_with_name("end"),
+                    arc.start.to_sexpr_with_name("start", context),
+                    arc.midpoint.to_sexpr_with_name("mid", context),
+                    arc.end.to_sexpr_with_name("end", context),
                 ],
                 None,
             ),
-            FootprintShapeKind::Polygon(ploy) => {
-                ("fp_poly", vec![ploy.points.to_sexpr()], Some(ploy.fill))
-            }
+            FootprintShapeKind::Polygon(ploy) => (
+                "fp_poly",
+                vec![ploy.points.to_sexpr(context)],
+                Some(ploy.fill),
+            ),
             FootprintShapeKind::Curve(bezier) => (
                 "fp_curve",
                 bezier
                     .points
                     .iter()
-                    .map(|p| p.to_sexpr())
+                    .map(|p| p.to_sexpr(context))
                     .collect::<Vec<_>>(),
                 None,
             ),
@@ -215,10 +220,10 @@ impl ToSexpr for FootprintShape {
                 &[self.locked.then(|| Sexpr::symbol("locked"))][..],
                 &elements.into_iter().map(Option::Some).collect::<Vec<_>>(),
                 &[
-                    Some(self.stroke.to_sexpr()),
+                    Some(self.stroke.to_sexpr(context)),
                     fill.map(|f| Sexpr::symbol_with_name("fill", f)),
                     Some(Sexpr::string_with_name("layer", self.layer)),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                    Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
                 ][..],
             ]
             .concat(),

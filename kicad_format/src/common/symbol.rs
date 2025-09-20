@@ -8,8 +8,8 @@ use regex::Regex;
 
 use crate::{
     convert::{
-        FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName,
-        VecToMaybeSexprVec,
+        FromSexpr, MaybeFromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr,
+        ToSexprWithName, VecToMaybeSexprVec,
     },
     simple_maybe_from_sexpr, simple_to_from_string, KiCadParseError, SexprKind,
 };
@@ -27,10 +27,12 @@ pub struct LibSymbol {
     pub power: bool,
     pub hide_pin_numbers: bool,
     pub pin_names: Option<PinNames>,
+    pub exclude_from_sim: Option<bool>,
     pub in_bom: bool,
     pub on_board: bool,
     pub properties: Vec<SymbolProperty>,
     pub units: Vec<LibSymbolSubUnit>,
+    pub embedded_fonts: Option<bool>,
 }
 
 impl FromSexpr for LibSymbol {
@@ -42,17 +44,22 @@ impl FromSexpr for LibSymbol {
         let hide_pin_numbers = parser
             .maybe_list_with_name("pin_numbers")
             .map(|mut p| {
-                p.expect_symbol_matching("hide")?;
+                if p.maybe_symbol_matching("hide") {
+                    return Ok::<_, KiCadParseError>(());
+                }
+                p.maybe_bool_with_name("hide")?;
                 p.expect_end()?;
                 Ok::<_, KiCadParseError>(())
             })
             .transpose()?
             .is_some();
         let pin_names = parser.maybe::<PinNames>()?;
+        let exclude_from_sim = parser.maybe_bool_with_name("exclude_from_sim")?;
         let in_bom = parser.expect_bool_with_name("in_bom")?;
         let on_board = parser.expect_bool_with_name("on_board")?;
         let properties = parser.expect_many::<SymbolProperty>()?;
         let units = parser.expect_many::<LibSymbolSubUnit>()?;
+        let embedded_fonts = parser.maybe_bool_with_name("embedded_fonts")?;
 
         parser.expect_end()?;
 
@@ -61,10 +68,12 @@ impl FromSexpr for LibSymbol {
             power,
             hide_pin_numbers,
             pin_names,
+            exclude_from_sim,
             in_bom,
             on_board,
             properties,
             units,
+            embedded_fonts,
         })
     }
 }
@@ -72,21 +81,37 @@ impl FromSexpr for LibSymbol {
 simple_maybe_from_sexpr!(LibSymbol, symbol);
 
 impl ToSexpr for LibSymbol {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
+        let exclude_from_sim = self
+            .exclude_from_sim
+            .map(|value| Sexpr::bool_with_name("exclude_from_sim", value));
+
+        let hide_pin_numbers = if context.explicit_booleans {
+            self.hide_pin_numbers.then(|| {
+                Sexpr::list_with_name("pin_numbers", &[Some(Sexpr::bool_with_name("hide", true))])
+            })
+        } else {
+            self.hide_pin_numbers
+                .then(|| Sexpr::symbol_with_name("pin_numbers", "hide"))
+        };
+
         Sexpr::list_with_name(
             "symbol",
             [
                 &[
-                    Some(self.id.to_sexpr()),
+                    Some(self.id.to_sexpr(context)),
                     self.power.then(|| Sexpr::list_with_name("power", [])),
-                    self.hide_pin_numbers
-                        .then(|| Sexpr::symbol_with_name("pin_numbers", "hide")),
-                    self.pin_names.as_ref().map(ToSexpr::to_sexpr),
+                    hide_pin_numbers,
+                    self.pin_names.as_ref().map(|i| i.to_sexpr(context)),
+                    exclude_from_sim,
                     Some(Sexpr::bool_with_name("in_bom", self.in_bom)),
                     Some(Sexpr::bool_with_name("on_board", self.on_board)),
                 ][..],
-                &self.properties.into_sexpr_vec(),
-                &self.units.into_sexpr_vec(),
+                &self.properties.into_sexpr_vec(context),
+                &self.units.into_sexpr_vec(context),
+                &[self
+                    .embedded_fonts
+                    .map(|value| Sexpr::bool_with_name("embedded_fonts", value))],
             ]
             .concat(),
         )
@@ -126,18 +151,18 @@ impl FromSexpr for LibSymbolSubUnit {
 simple_maybe_from_sexpr!(LibSymbolSubUnit, symbol);
 
 impl ToSexpr for LibSymbolSubUnit {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "symbol",
             [
                 &[
-                    Some(self.id.to_sexpr()),
+                    Some(self.id.to_sexpr(context)),
                     self.unit_name
                         .as_ref()
                         .map(|s| Sexpr::string_with_name("unit_name", s)),
                 ][..],
-                &self.graphic_items.into_sexpr_vec(),
-                &self.pins.into_sexpr_vec(),
+                &self.graphic_items.into_sexpr_vec(context),
+                &self.pins.into_sexpr_vec(context),
             ]
             .concat(),
         )
@@ -200,7 +225,7 @@ impl Display for LibraryId {
 }
 
 impl ToSexpr for LibraryId {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _: SerializationContext) -> Sexpr {
         let result = if let Some(library_nickname) = &self.library_nickname {
             format!("{}:{}", library_nickname, self.entry_name)
         } else {
@@ -280,7 +305,7 @@ impl FromStr for UnitId {
 }
 
 impl ToSexpr for UnitId {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::string(format!("{}_{}_{}", self.parent, self.unit, self.style))
     }
 }
@@ -332,7 +357,7 @@ impl FromSexpr for PinNames {
         parser.expect_symbol_matching("pin_names")?;
 
         let offset = parser.maybe_number_with_name("offset")?;
-        let hide = parser.maybe_symbol_matching("hide");
+        let hide = parser.maybe_symbol_or_boolean_with_name("hide");
 
         parser.expect_end()?;
 
@@ -343,12 +368,18 @@ impl FromSexpr for PinNames {
 simple_maybe_from_sexpr!(PinNames, pin_names);
 
 impl ToSexpr for PinNames {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
+        let hide = if context.explicit_booleans {
+            self.hide.then(|| Sexpr::symbol_with_name("hide", "yes"))
+        } else {
+            self.hide.then(|| Sexpr::symbol("hide"))
+        };
+
         Sexpr::list_with_name(
             "pin_names",
             [
                 self.offset.map(|o| Sexpr::number_with_name("offset", o)),
-                self.hide.then(|| Sexpr::symbol("hide")),
+                hide,
             ],
         )
     }
@@ -408,18 +439,18 @@ impl FromSexpr for SymbolProperty {
 simple_maybe_from_sexpr!(SymbolProperty, property);
 
 impl ToSexpr for SymbolProperty {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "property",
             [
                 Some(Sexpr::string(&self.key)),
                 Some(Sexpr::string(&self.value)),
-                Some(self.position.to_sexpr()),
+                Some(self.position.to_sexpr(context)),
                 self.show_name
                     .then(|| Sexpr::list_with_name("show_name", [])),
                 self.do_not_autoplace
                     .then(|| Sexpr::list_with_name("do_not_autoplace", [])),
-                Some(self.effects.to_sexpr()),
+                Some(self.effects.to_sexpr(context)),
             ],
         )
     }
@@ -481,11 +512,11 @@ impl MaybeFromSexpr for LibSymbolGraphicsItem {
 }
 
 impl ToSexpr for LibSymbolGraphicsItem {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         match self {
-            LibSymbolGraphicsItem::Shape(shape) => shape.to_sexpr(),
-            LibSymbolGraphicsItem::Text(text) => text.to_sexpr(),
-            LibSymbolGraphicsItem::TextBox(text_box) => text_box.to_sexpr(),
+            LibSymbolGraphicsItem::Shape(shape) => shape.to_sexpr(context),
+            LibSymbolGraphicsItem::Text(text) => text.to_sexpr(context),
+            LibSymbolGraphicsItem::TextBox(text_box) => text_box.to_sexpr(context),
         }
     }
 }
@@ -521,14 +552,14 @@ impl FromSexpr for LibSymbolText {
 }
 
 impl ToSexpr for LibSymbolText {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "text",
             [
                 self.private.then(|| Sexpr::symbol("private")),
                 Some(Sexpr::string(&self.text)),
-                Some(self.position.to_sexpr()),
-                Some(self.effects.to_sexpr()),
+                Some(self.position.to_sexpr(context)),
+                Some(self.effects.to_sexpr(context)),
             ],
         )
     }
@@ -575,17 +606,17 @@ impl FromSexpr for LibSymbolTextBox {
 }
 
 impl ToSexpr for LibSymbolTextBox {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "text_box",
             [
                 self.private.then(|| Sexpr::symbol("private")),
                 Some(Sexpr::string(&self.text)),
-                Some(self.position.to_sexpr()),
-                Some(self.size.to_sexpr_with_name("size")),
-                Some(self.stroke.to_sexpr()),
-                Some(self.fill.to_sexpr()),
-                Some(self.effects.to_sexpr()),
+                Some(self.position.to_sexpr(context)),
+                Some(self.size.to_sexpr_with_name("size", context)),
+                Some(self.stroke.to_sexpr(context)),
+                Some(self.fill.to_sexpr(context)),
+                Some(self.effects.to_sexpr(context)),
             ],
         )
     }
@@ -637,7 +668,7 @@ impl FromSexpr for Pin {
         let graphical_style = parser.expect_symbol()?.parse::<PinGraphicalStyle>()?;
         let position = parser.expect::<Position>()?;
         let length = parser.expect_number_with_name("length")?;
-        let hide = parser.maybe_symbol_matching("hide");
+        let hide = parser.maybe_symbol_or_boolean_with_name("hide");
         let (name, name_effects) = parser.expect_list_with_name("name").and_then(|mut p| {
             let name = p.expect_string()?;
             let name_effects = p.expect::<TextEffects>()?;
@@ -675,32 +706,38 @@ impl FromSexpr for Pin {
 simple_maybe_from_sexpr!(Pin, pin);
 
 impl ToSexpr for Pin {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
+        let hide = if context.explicit_booleans {
+            self.hide.then(|| Sexpr::symbol_with_name("hide", "yes"))
+        } else {
+            self.hide.then(|| Sexpr::symbol("hide"))
+        };
+
         Sexpr::list_with_name(
             "pin",
             [
                 &[
                     Some(Sexpr::symbol(self.electrical_kind)),
                     Some(Sexpr::symbol(self.graphical_style)),
-                    Some(self.position.to_sexpr()),
+                    Some(self.position.to_sexpr(context)),
                     Some(Sexpr::number_with_name("length", self.length)),
-                    self.hide.then(|| Sexpr::symbol("hide")),
+                    hide,
                     Some(Sexpr::list_with_name(
                         "name",
                         [
                             Some(Sexpr::string(&self.name)),
-                            Some(self.name_effects.to_sexpr()),
+                            Some(self.name_effects.to_sexpr(context)),
                         ],
                     )),
                     Some(Sexpr::list_with_name(
                         "number",
                         [
                             Some(Sexpr::string(&self.number)),
-                            Some(self.number_effects.to_sexpr()),
+                            Some(self.number_effects.to_sexpr(context)),
                         ],
                     )),
                 ][..],
-                &self.alternates.into_sexpr_vec(),
+                &self.alternates.into_sexpr_vec(context),
             ]
             .concat(),
         )
@@ -815,7 +852,7 @@ impl FromSexpr for PinAlternate {
 simple_maybe_from_sexpr!(PinAlternate, alternate);
 
 impl ToSexpr for PinAlternate {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "alternate",
             [

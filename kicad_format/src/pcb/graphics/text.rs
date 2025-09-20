@@ -2,7 +2,7 @@ use kicad_sexpr::Sexpr;
 
 use crate::{
     common::{CoordinatePointList, LayerId, Position, Stroke, TextEffects, Uuid, Vec2D},
-    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName},
+    convert::{FromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr, ToSexprWithName},
     KiCadParseError,
 };
 
@@ -59,13 +59,13 @@ impl FromSexpr for PcbText {
 }
 
 impl ToSexpr for PcbText {
-    fn to_sexpr(&self) -> kicad_sexpr::Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> kicad_sexpr::Sexpr {
         Sexpr::list_with_name(
             "gr_text",
             [
                 self.locked.then(|| Sexpr::symbol("locked")),
                 Some(Sexpr::string(&self.text)),
-                Some(self.position.to_sexpr()),
+                Some(self.position.to_sexpr(context)),
                 Some(Sexpr::list_with_name(
                     "layer",
                     [
@@ -73,8 +73,8 @@ impl ToSexpr for PcbText {
                         self.knockout.then(|| Sexpr::symbol("knockout")),
                     ],
                 )),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
-                Some(self.effects.to_sexpr()),
+                Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
+                Some(self.effects.to_sexpr(context)),
             ],
         )
     }
@@ -165,7 +165,7 @@ impl FromSexpr for PcbTextBox {
 }
 
 impl ToSexpr for PcbTextBox {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "gr_text_box",
             [
@@ -175,17 +175,19 @@ impl ToSexpr for PcbTextBox {
                 ][..],
                 &match &self.position {
                     TextBoxPosition::StartEnd(start, end) => vec![
-                        Some(start.to_sexpr_with_name("start")),
-                        Some(end.to_sexpr_with_name("end")),
+                        Some(start.to_sexpr_with_name("start", context)),
+                        Some(end.to_sexpr_with_name("end", context)),
                     ],
-                    TextBoxPosition::Points(points) => vec![Some(points.to_vec().to_sexpr())],
+                    TextBoxPosition::Points(points) => {
+                        vec![Some(points.to_vec().to_sexpr(context))]
+                    }
                 },
                 &[
                     self.angle.map(|a| Sexpr::number_with_name("angle", a)),
                     Some(Sexpr::string(self.layer)),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
-                    Some(self.effects.to_sexpr()),
-                    self.stroke.as_ref().map(ToSexpr::to_sexpr),
+                    Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
+                    Some(self.effects.to_sexpr(context)),
+                    self.stroke.as_ref().map(|i| i.to_sexpr(context)),
                 ][..],
             ]
             .concat(),

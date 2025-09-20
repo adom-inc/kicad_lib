@@ -3,7 +3,7 @@
 use kicad_sexpr::{Sexpr, SexprList};
 
 use crate::{
-    convert::{FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr},
+    convert::{FromSexpr, MaybeFromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr},
     KiCadParseError, SexprKind,
 };
 
@@ -74,12 +74,12 @@ impl MaybeFromSexpr for PcbGraphicsItem {
 }
 
 impl ToSexpr for PcbGraphicsItem {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         match self {
-            PcbGraphicsItem::Text(text) => text.to_sexpr(),
-            PcbGraphicsItem::TextBox(text_box) => text_box.to_sexpr(),
-            PcbGraphicsItem::Shape(shape) => shape.to_sexpr(),
-            PcbGraphicsItem::Dimension(dimension) => dimension.to_sexpr(),
+            PcbGraphicsItem::Text(text) => text.to_sexpr(context),
+            PcbGraphicsItem::TextBox(text_box) => text_box.to_sexpr(context),
+            PcbGraphicsItem::Shape(shape) => shape.to_sexpr(context),
+            PcbGraphicsItem::Dimension(dimension) => dimension.to_sexpr(context),
         }
     }
 }

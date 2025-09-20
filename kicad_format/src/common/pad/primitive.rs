@@ -4,7 +4,10 @@ use kicad_sexpr::{Sexpr, SexprList};
 
 use crate::{
     common::{CoordinatePointList, Vec2D},
-    convert::{FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName},
+    convert::{
+        FromSexpr, MaybeFromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr,
+        ToSexprWithName,
+    },
     simple_to_from_string, KiCadParseError,
 };
 
@@ -163,46 +166,46 @@ impl MaybeFromSexpr for PadGraphicsPrimitive {
 }
 
 impl ToSexpr for PadGraphicsPrimitive {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         let (name, elements, fill) = match &self.kind {
             PadGraphicsPrimitiveKind::Line(line) => (
                 "gr_line",
                 vec![
-                    line.start.to_sexpr_with_name("start"),
-                    line.end.to_sexpr_with_name("end"),
+                    line.start.to_sexpr_with_name("start", context),
+                    line.end.to_sexpr_with_name("end", context),
                 ],
                 None,
             ),
             PadGraphicsPrimitiveKind::AnnotationBoundingBox(bbox) => (
                 "gr_bbox",
                 vec![
-                    bbox.start.to_sexpr_with_name("start"),
-                    bbox.end.to_sexpr_with_name("end"),
+                    bbox.start.to_sexpr_with_name("start", context),
+                    bbox.end.to_sexpr_with_name("end", context),
                 ],
                 Some(bbox.fill),
             ),
             PadGraphicsPrimitiveKind::Rectangle(rect) => (
                 "gr_rect",
                 vec![
-                    rect.start.to_sexpr_with_name("start"),
-                    rect.end.to_sexpr_with_name("end"),
+                    rect.start.to_sexpr_with_name("start", context),
+                    rect.end.to_sexpr_with_name("end", context),
                 ],
                 Some(rect.fill),
             ),
             PadGraphicsPrimitiveKind::Arc(arc) => (
                 "gr_arc",
                 vec![
-                    arc.start.to_sexpr_with_name("start"),
-                    arc.midpoint.to_sexpr_with_name("mid"),
-                    arc.end.to_sexpr_with_name("end"),
+                    arc.start.to_sexpr_with_name("start", context),
+                    arc.midpoint.to_sexpr_with_name("mid", context),
+                    arc.end.to_sexpr_with_name("end", context),
                 ],
                 None,
             ),
             PadGraphicsPrimitiveKind::Circle(circle) => (
                 "gr_circle",
                 vec![
-                    circle.center.to_sexpr_with_name("center"),
-                    circle.end.to_sexpr_with_name("end"),
+                    circle.center.to_sexpr_with_name("center", context),
+                    circle.end.to_sexpr_with_name("end", context),
                 ],
                 Some(circle.fill),
             ),
@@ -211,13 +214,15 @@ impl ToSexpr for PadGraphicsPrimitive {
                 bezier
                     .points
                     .iter()
-                    .map(|p| p.to_sexpr())
+                    .map(|p| p.to_sexpr(context))
                     .collect::<Vec<_>>(),
                 None,
             ),
-            PadGraphicsPrimitiveKind::Polygon(ploy) => {
-                ("gr_poly", vec![ploy.points.to_sexpr()], Some(ploy.fill))
-            }
+            PadGraphicsPrimitiveKind::Polygon(ploy) => (
+                "gr_poly",
+                vec![ploy.points.to_sexpr(context)],
+                Some(ploy.fill),
+            ),
         };
 
         Sexpr::list_with_name(

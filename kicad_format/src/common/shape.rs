@@ -8,7 +8,10 @@
 use kicad_sexpr::{Sexpr, SexprList};
 
 use crate::{
-    convert::{FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName},
+    convert::{
+        FromSexpr, MaybeFromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr,
+        ToSexprWithName,
+    },
     KiCadParseError,
 };
 
@@ -106,28 +109,28 @@ impl MaybeFromSexpr for Shape {
 }
 
 impl ToSexpr for Shape {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         let (name, elements) = match &self.kind {
             ShapeKind::Arc(arc) => (
                 "arc",
                 vec![
-                    arc.start.to_sexpr_with_name("start"),
-                    arc.midpoint.to_sexpr_with_name("mid"),
-                    arc.end.to_sexpr_with_name("end"),
+                    arc.start.to_sexpr_with_name("start", context),
+                    arc.midpoint.to_sexpr_with_name("mid", context),
+                    arc.end.to_sexpr_with_name("end", context),
                 ],
             ),
             ShapeKind::Circle(circle) => (
                 "circle",
                 vec![
-                    circle.center.to_sexpr_with_name("center"),
+                    circle.center.to_sexpr_with_name("center", context),
                     Sexpr::number_with_name("radius", circle.radius),
                 ],
             ),
             ShapeKind::Rectangle(rect) => (
                 "rectangle",
                 vec![
-                    rect.start.to_sexpr_with_name("start"),
-                    rect.end.to_sexpr_with_name("end"),
+                    rect.start.to_sexpr_with_name("start", context),
+                    rect.end.to_sexpr_with_name("end", context),
                 ],
             ),
             ShapeKind::Bezier(bezier) => (
@@ -135,10 +138,10 @@ impl ToSexpr for Shape {
                 bezier
                     .points
                     .iter()
-                    .map(|p| p.to_sexpr())
+                    .map(|p| p.to_sexpr(context))
                     .collect::<Vec<_>>(),
             ),
-            ShapeKind::PolyLine(ploy) => ("polyline", vec![ploy.points.to_sexpr()]),
+            ShapeKind::PolyLine(ploy) => ("polyline", vec![ploy.points.to_sexpr(context)]),
         };
 
         Sexpr::list_with_name(
@@ -147,9 +150,9 @@ impl ToSexpr for Shape {
                 &[self.private.then(|| Sexpr::symbol("private"))][..],
                 &elements.into_iter().map(Option::Some).collect::<Vec<_>>(),
                 &[
-                    Some(self.stroke.to_sexpr()),
-                    Some(self.fill.to_sexpr()),
-                    self.uuid.as_ref().map(ToSexpr::to_sexpr),
+                    Some(self.stroke.to_sexpr(context)),
+                    Some(self.fill.to_sexpr(context)),
+                    self.uuid.as_ref().map(|i| i.to_sexpr(context)),
                 ][..],
             ]
             .concat(),
@@ -233,7 +236,7 @@ impl FromSexpr for ShapeFillMode {
 }
 
 impl ToSexpr for ShapeFillMode {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         let kind = match self {
             Self::None => "none",
             Self::Outline => "outline",
@@ -242,7 +245,7 @@ impl ToSexpr for ShapeFillMode {
         };
 
         let color = match self {
-            Self::Color(color) => Some(color.to_sexpr()),
+            Self::Color(color) => Some(color.to_sexpr(context)),
             _ => None,
         };
 

@@ -4,7 +4,7 @@ use kicad_sexpr::Sexpr;
 
 use crate::{
     common::{CoordinatePointList, LayerId, Stroke, TextEffects, Uuid, Vec2D},
-    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName},
+    convert::{FromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr, ToSexprWithName},
     simple_to_from_string, KiCadParseError,
 };
 
@@ -56,14 +56,14 @@ impl FromSexpr for FootprintText {
 }
 
 impl ToSexpr for FootprintText {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "fp_text",
             [
                 Some(Sexpr::symbol(self.kind)),
                 self.locked.then(|| Sexpr::symbol("locked")),
                 Some(Sexpr::string(&self.text)),
-                Some(self.position.to_sexpr()),
+                Some(self.position.to_sexpr(context)),
                 Some(Sexpr::list_with_name(
                     "layer",
                     [
@@ -72,8 +72,8 @@ impl ToSexpr for FootprintText {
                     ],
                 )),
                 self.hide.then(|| Sexpr::symbol("hide")),
-                Some(self.effects.to_sexpr()),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.effects.to_sexpr(context)),
+                Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
             ],
         )
     }
@@ -130,7 +130,7 @@ impl FromSexpr for FootprintTextPosition {
 }
 
 impl ToSexpr for FootprintTextPosition {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "at",
             [
@@ -214,20 +214,24 @@ impl FromSexpr for FootprintTextBox {
 }
 
 impl ToSexpr for FootprintTextBox {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "fp_text_box",
             [
                 self.locked.then(|| Sexpr::symbol("locked")),
                 Some(Sexpr::string(&self.text)),
-                self.start.as_ref().map(|v| v.to_sexpr_with_name("start")),
-                self.end.as_ref().map(|v| v.to_sexpr_with_name("end")),
-                self.points.as_ref().map(|v| v.to_vec().to_sexpr()),
+                self.start
+                    .as_ref()
+                    .map(|v| v.to_sexpr_with_name("start", context)),
+                self.end
+                    .as_ref()
+                    .map(|v| v.to_sexpr_with_name("end", context)),
+                self.points.as_ref().map(|v| v.to_vec().to_sexpr(context)),
                 self.angle.map(|n| Sexpr::number_with_name("angle", n)),
                 Some(Sexpr::string_with_name("layer", self.layer)),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
-                Some(self.effects.to_sexpr()),
-                self.stroke.as_ref().map(ToSexpr::to_sexpr),
+                Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
+                Some(self.effects.to_sexpr(context)),
+                self.stroke.as_ref().map(|i| i.to_sexpr(context)),
             ],
         )
     }

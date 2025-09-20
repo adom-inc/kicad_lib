@@ -8,8 +8,8 @@ use crate::{
         PageSize, Property, StandardPageSize, TitleBlock, Uuid, Vec2D,
     },
     convert::{
-        FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName,
-        VecToMaybeSexprVec,
+        FromSexpr, MaybeFromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr,
+        ToSexprWithName, VecToMaybeSexprVec,
     },
     simple_to_from_string, KiCadParseError, SexprKind,
 };
@@ -324,30 +324,30 @@ impl FromSexpr for PcbFile {
 }
 
 impl ToSexpr for PcbFile {
-    fn to_sexpr(&self) -> kicad_sexpr::Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> kicad_sexpr::Sexpr {
         Sexpr::list_with_name(
             "kicad_pcb",
             [
                 &[
                     Some(Sexpr::number_with_name("version", self.version as f32)),
                     Some(Sexpr::symbol_with_name("generator", &self.generator)),
-                    Some(self.general_settings.to_sexpr()),
-                    Some(self.page_settings.to_sexpr()),
-                    self.title_block.as_ref().map(ToSexpr::to_sexpr),
+                    Some(self.general_settings.to_sexpr(context)),
+                    Some(self.page_settings.to_sexpr(context)),
+                    self.title_block.as_ref().map(|i| i.to_sexpr(context)),
                     Some(Sexpr::list_with_name(
                         "layers",
-                        self.layers.into_sexpr_vec(),
+                        self.layers.into_sexpr_vec(context),
                     )),
-                    Some(self.setup.to_sexpr()),
+                    Some(self.setup.to_sexpr(context)),
                 ][..],
-                &self.properties.into_sexpr_vec(),
-                &self.nets.into_sexpr_vec(),
-                &self.footprints.into_sexpr_vec(),
-                &self.graphics_items.into_sexpr_vec(),
-                &self.images.into_sexpr_vec(),
-                &self.tracks.into_sexpr_vec(),
-                &self.zones.into_sexpr_vec(),
-                &self.groups.into_sexpr_vec(),
+                &self.properties.into_sexpr_vec(context),
+                &self.nets.into_sexpr_vec(context),
+                &self.footprints.into_sexpr_vec(context),
+                &self.graphics_items.into_sexpr_vec(context),
+                &self.images.into_sexpr_vec(context),
+                &self.tracks.into_sexpr_vec(context),
+                &self.zones.into_sexpr_vec(context),
+                &self.groups.into_sexpr_vec(context),
             ]
             .concat(),
         )
@@ -377,7 +377,7 @@ impl FromSexpr for GeneralSettings {
 }
 
 impl ToSexpr for GeneralSettings {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "general",
             [Some(Sexpr::number_with_name("thickness", self.thickness))],
@@ -433,7 +433,7 @@ impl MaybeFromSexpr for BoardLayer {
 }
 
 impl ToSexpr for BoardLayer {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list([
             Some(Sexpr::number(self.layer as u8 as f32)),
             Some(Sexpr::string(self.layer)),
@@ -509,11 +509,11 @@ impl MaybeFromSexpr for Track {
 }
 
 impl ToSexpr for Track {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         match self {
-            Track::Segment(segment) => segment.to_sexpr(),
-            Track::Via(via) => via.to_sexpr(),
-            Track::Arc(arc) => arc.to_sexpr(),
+            Track::Segment(segment) => segment.to_sexpr(context),
+            Track::Via(via) => via.to_sexpr(context),
+            Track::Arc(arc) => arc.to_sexpr(context),
         }
     }
 }
@@ -561,17 +561,17 @@ impl FromSexpr for TrackSegment {
 }
 
 impl ToSexpr for TrackSegment {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "segment",
             [
                 self.locked.then(|| Sexpr::symbol("locked")),
-                Some(self.start.to_sexpr_with_name("start")),
-                Some(self.end.to_sexpr_with_name("end")),
+                Some(self.start.to_sexpr_with_name("start", context)),
+                Some(self.end.to_sexpr_with_name("end", context)),
                 Some(Sexpr::number_with_name("width", self.width)),
                 Some(Sexpr::string_with_name("layer", self.layer)),
                 Some(Sexpr::number_with_name("net", self.net as f32)),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
             ],
         )
     }
@@ -657,7 +657,7 @@ impl FromSexpr for TrackVia {
 }
 
 impl ToSexpr for TrackVia {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "via",
             [
@@ -667,7 +667,7 @@ impl ToSexpr for TrackVia {
                     None
                 },
                 self.locked.then(|| Sexpr::symbol("locked")),
-                Some(self.position.to_sexpr_with_name("at")),
+                Some(self.position.to_sexpr_with_name("at", context)),
                 Some(Sexpr::number_with_name("size", self.size)),
                 Some(Sexpr::number_with_name("drill", self.drill)),
                 Some(Sexpr::list_with_name(
@@ -694,7 +694,7 @@ impl ToSexpr for TrackVia {
                     )
                 }),
                 Some(Sexpr::number_with_name("net", self.net as f32)),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
             ],
         )
     }
@@ -768,18 +768,18 @@ impl FromSexpr for TrackArc {
 }
 
 impl ToSexpr for TrackArc {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "arc",
             [
                 self.locked.then(|| Sexpr::symbol("locked")),
-                Some(self.start.to_sexpr_with_name("start")),
-                Some(self.midpoint.to_sexpr_with_name("mid")),
-                Some(self.end.to_sexpr_with_name("end")),
+                Some(self.start.to_sexpr_with_name("start", context)),
+                Some(self.midpoint.to_sexpr_with_name("mid", context)),
+                Some(self.end.to_sexpr_with_name("end", context)),
                 Some(Sexpr::number_with_name("width", self.width)),
                 Some(Sexpr::string_with_name("layer", self.layer)),
                 Some(Sexpr::number_with_name("net", self.net as f32)),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
             ],
         )
     }

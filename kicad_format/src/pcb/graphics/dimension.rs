@@ -2,7 +2,7 @@ use kicad_sexpr::Sexpr;
 
 use crate::{
     common::{LayerId, Uuid, Vec2D},
-    convert::{FromSexpr, Parser, ToSexpr},
+    convert::{FromSexpr, Parser, SerializationContext, ToSexpr},
     KiCadParseError,
 };
 
@@ -54,7 +54,7 @@ impl FromSexpr for PcbDimension {
 }
 
 impl ToSexpr for PcbDimension {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         todo!("impl ToSexpr for PcbDimension")
     }
 }

@@ -7,7 +7,7 @@ use self::primitive::PadGraphicsPrimitive;
 use super::footprint::ZoneConnectKind;
 use crate::{
     common::{LayerId, Position, Uuid, Vec2D},
-    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName},
+    convert::{FromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr, ToSexprWithName},
     simple_maybe_from_sexpr, simple_to_from_string, KiCadParseError,
 };
 
@@ -173,7 +173,7 @@ impl FromSexpr for Pad {
 simple_maybe_from_sexpr!(Pad, pad);
 
 impl ToSexpr for Pad {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "pad",
             [
@@ -181,12 +181,12 @@ impl ToSexpr for Pad {
                 Some(Sexpr::symbol(self.kind)),
                 Some(Sexpr::symbol(self.shape)),
                 self.locked.then(|| Sexpr::symbol("locked")),
-                Some(self.position.to_sexpr()),
-                Some(self.size.to_sexpr_with_name("size")),
+                Some(self.position.to_sexpr(context)),
+                Some(self.size.to_sexpr_with_name("size", context)),
                 self.rect_delta
                     .as_ref()
-                    .map(|r| r.to_sexpr_with_name("rect_delta")),
-                self.drill.as_ref().map(ToSexpr::to_sexpr),
+                    .map(|r| r.to_sexpr_with_name("rect_delta", context)),
+                self.drill.as_ref().map(|i| i.to_sexpr(context)),
                 self.property
                     .map(|p| Sexpr::symbol_with_name("property", p)),
                 Some(Sexpr::list_with_name(
@@ -216,8 +216,8 @@ impl ToSexpr for Pad {
                     .map(|n| Sexpr::number_with_name("roundrect_rratio", n)),
                 self.chamfer_ratio
                     .map(|n| Sexpr::number_with_name("chamfer_ratio", n)),
-                self.chamfer.as_ref().map(ToSexpr::to_sexpr),
-                self.net.as_ref().map(ToSexpr::to_sexpr),
+                self.chamfer.as_ref().map(|i| i.to_sexpr(context)),
+                self.net.as_ref().map(|i| i.to_sexpr(context)),
                 self.pin_function
                     .as_ref()
                     .map(|s| Sexpr::string_with_name("pinfunction", s)),
@@ -242,17 +242,19 @@ impl ToSexpr for Pad {
                     .map(|n| Sexpr::number_with_name("thermal_bridge_angle", n)),
                 self.thermal_gap
                     .map(|n| Sexpr::number_with_name("thermal_gap", n)),
-                self.custom_pad_options.as_ref().map(ToSexpr::to_sexpr),
+                self.custom_pad_options
+                    .as_ref()
+                    .map(|i| i.to_sexpr(context)),
                 self.custom_pad_primitives.as_ref().map(|p| {
                     Sexpr::list_with_name(
                         "primitives",
                         p.iter()
-                            .map(ToSexpr::to_sexpr)
+                            .map(|i| i.to_sexpr(context))
                             .map(Option::Some)
                             .collect::<Vec<_>>(),
                     )
                 }),
-                Some(self.tstamp.to_sexpr_with_name("tstamp")),
+                Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
             ],
         )
     }
@@ -337,14 +339,16 @@ impl FromSexpr for Drill {
 simple_maybe_from_sexpr!(Drill, drill);
 
 impl ToSexpr for Drill {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "drill",
             [
                 self.is_oval().then(|| Sexpr::symbol("oval")),
                 Some(Sexpr::number(self.diameter)),
                 self.width.map(Sexpr::number),
-                self.offset.as_ref().map(|o| o.to_sexpr_with_name("offset")),
+                self.offset
+                    .as_ref()
+                    .map(|o| o.to_sexpr_with_name("offset", context)),
             ],
         )
     }
@@ -405,7 +409,7 @@ impl FromSexpr for Chamfer {
 simple_maybe_from_sexpr!(Chamfer, chamfer);
 
 impl ToSexpr for Chamfer {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "chamfer",
             [
@@ -442,7 +446,7 @@ impl FromSexpr for Net {
 simple_maybe_from_sexpr!(Net, net);
 
 impl ToSexpr for Net {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "net",
             [
@@ -481,7 +485,7 @@ impl FromSexpr for CustomPadOptions {
 simple_maybe_from_sexpr!(CustomPadOptions, options);
 
 impl ToSexpr for CustomPadOptions {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "options",
             [

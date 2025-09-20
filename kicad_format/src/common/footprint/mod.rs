@@ -13,8 +13,8 @@ use super::{
 };
 use crate::{
     convert::{
-        FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName,
-        VecToMaybeSexprVec,
+        FromSexpr, MaybeFromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr,
+        ToSexprWithName, VecToMaybeSexprVec,
     },
     footprint_library::FootprintLibraryFile,
     simple_maybe_from_sexpr, KiCadParseError, SexprKind,
@@ -232,17 +232,17 @@ impl FromSexpr for FootprintInlined {
 simple_maybe_from_sexpr!(FootprintInlined, footprint);
 
 impl ToSexpr for FootprintInlined {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "footprint",
             [
                 vec![
-                    Some(self.library_link.to_sexpr()),
+                    Some(self.library_link.to_sexpr(context)),
                     self.locked.then(|| Sexpr::symbol("locked")),
                     self.placed.then(|| Sexpr::symbol("placed")),
                     Some(Sexpr::string_with_name("layer", self.layer)),
-                    Some(self.tstamp.to_sexpr_with_name("tstamp")),
-                    Some(self.position.to_sexpr()),
+                    Some(self.tstamp.to_sexpr_with_name("tstamp", context)),
+                    Some(self.position.to_sexpr(context)),
                     self.description
                         .as_ref()
                         .map(|s| Sexpr::string_with_name("descr", s)),
@@ -250,7 +250,7 @@ impl ToSexpr for FootprintInlined {
                         .as_ref()
                         .map(|s| Sexpr::string_with_name("tags", s)),
                 ],
-                self.properties.into_sexpr_vec(),
+                self.properties.into_sexpr_vec(context),
                 vec![
                     self.path
                         .as_ref()
@@ -265,7 +265,7 @@ impl ToSexpr for FootprintInlined {
                         .map(|n| Sexpr::number_with_name("clearance", n)),
                     self.zone_connect
                         .map(|n| Sexpr::number_with_name("zone_connect", n as u8 as f32)),
-                    self.attributes.as_ref().map(ToSexpr::to_sexpr),
+                    self.attributes.as_ref().map(|i| i.to_sexpr(context)),
                     self.private_layers.as_ref().map(|l| {
                         Sexpr::list_with_name(
                             "private_layers",
@@ -287,11 +287,11 @@ impl ToSexpr for FootprintInlined {
                         )
                     }),
                 ],
-                self.graphics_items.into_sexpr_vec(),
-                self.pads.into_sexpr_vec(),
-                self.keep_out_zones.into_sexpr_vec(),
-                self.groups.into_sexpr_vec(),
-                self.models.into_sexpr_vec(),
+                self.graphics_items.into_sexpr_vec(context),
+                self.pads.into_sexpr_vec(context),
+                self.keep_out_zones.into_sexpr_vec(context),
+                self.groups.into_sexpr_vec(context),
+                self.models.into_sexpr_vec(context),
             ]
             .concat(),
         )
@@ -377,7 +377,7 @@ impl FromSexpr for FootprintAttributes {
 simple_maybe_from_sexpr!(FootprintAttributes, attr);
 
 impl ToSexpr for FootprintAttributes {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "attr",
             [
@@ -458,12 +458,12 @@ impl MaybeFromSexpr for FootprintGraphicsItem {
 }
 
 impl ToSexpr for FootprintGraphicsItem {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         match self {
-            FootprintGraphicsItem::Image(image) => image.to_sexpr(),
-            FootprintGraphicsItem::Text(text) => text.to_sexpr(),
-            FootprintGraphicsItem::TextBox(text_box) => text_box.to_sexpr(),
-            FootprintGraphicsItem::Shape(shape) => shape.to_sexpr(),
+            FootprintGraphicsItem::Image(image) => image.to_sexpr(context),
+            FootprintGraphicsItem::Text(text) => text.to_sexpr(context),
+            FootprintGraphicsItem::TextBox(text_box) => text_box.to_sexpr(context),
+            FootprintGraphicsItem::Shape(shape) => shape.to_sexpr(context),
         }
     }
 }
@@ -510,7 +510,7 @@ impl FromSexpr for Model {
 simple_maybe_from_sexpr!(Model, model);
 
 impl ToSexpr for Model {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "model",
             [
@@ -519,15 +519,15 @@ impl ToSexpr for Model {
                 self.opacity.map(|o| Sexpr::number_with_name("opacity", o)),
                 Some(Sexpr::list_with_name(
                     "offset",
-                    [Some(self.offset.to_sexpr())],
+                    [Some(self.offset.to_sexpr(context))],
                 )),
                 Some(Sexpr::list_with_name(
                     "scale",
-                    [Some(self.scale.to_sexpr())],
+                    [Some(self.scale.to_sexpr(context))],
                 )),
                 Some(Sexpr::list_with_name(
                     "rotate",
-                    [Some(self.rotate.to_sexpr())],
+                    [Some(self.rotate.to_sexpr(context))],
                 )),
             ],
         )

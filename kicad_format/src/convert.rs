@@ -161,6 +161,20 @@ impl Parser {
         self.expect_list_with_name(name)?.expect_string()
     }
 
+    pub fn expect_symbol_or_string_with_name(
+        &mut self,
+        name: &str,
+    ) -> Result<String, KiCadParseError> {
+        let next = self.expect_list_with_name(name)?.expect_next()?;
+        match next {
+            Sexpr::String(string) => Ok(string),
+            Sexpr::Symbol(string) => Ok(string),
+            _ => Err(KiCadParseError::UnexpectedSexprType {
+                expected: SexprKind::String,
+            }),
+        }
+    }
+
     /// Expects the next sexpr to be a number and returns it.
     ///
     /// If the next sexpr is not a number, an error is returned.
@@ -174,6 +188,18 @@ impl Parser {
         };
 
         Ok(number)
+    }
+
+    pub fn expect_bool(&mut self) -> Result<bool, KiCadParseError> {
+        let symbol = self.expect_symbol()?;
+        match symbol.as_str() {
+            "yes" => Ok(true),
+            "no" => Ok(false),
+            _ => Err(KiCadParseError::InvalidEnumValue {
+                value: symbol,
+                enum_name: "bool",
+            }),
+        }
     }
 
     pub fn expect_number_with_name(&mut self, name: &str) -> Result<f32, KiCadParseError> {
@@ -414,6 +440,12 @@ impl Parser {
             .transpose()
     }
 
+    pub fn maybe_bool_with_name(&mut self, name: &str) -> Result<Option<bool>, KiCadParseError> {
+        self.maybe_list_with_name(name)
+            .map(|mut d| d.expect_bool())
+            .transpose()
+    }
+
     pub fn maybe_symbol_matching(&mut self, expected: &str) -> bool {
         let Some(symbol) = self.peek_symbol() else {
             return false;
@@ -426,6 +458,44 @@ impl Parser {
         self.expect_symbol().unwrap();
 
         true
+    }
+
+    pub fn maybe_symbol_or_boolean_with_name(&mut self, name: &str) -> bool {
+        if self.maybe_symbol_matching(name) {
+            return true;
+        }
+
+        if let Ok(Some(value)) = self.maybe_bool_with_name(name) {
+            return value;
+        }
+
+        false
+    }
+
+    pub fn maybe_symbol_with_optional_boolean(&mut self, name: &str) -> bool {
+        let result = self
+            .maybe_list_with_name(name)
+            .map(|mut d| {
+                let next = d.maybe_symbol();
+                if let Some(symbol) = next {
+                    return match symbol.as_str() {
+                        "yes" => Ok(true),
+                        "no" => Ok(false),
+                        _ => Err(KiCadParseError::InvalidEnumValue {
+                            value: symbol,
+                            enum_name: "bool",
+                        }),
+                    };
+                }
+
+                Ok(true)
+            })
+            .transpose();
+
+        match result {
+            Ok(value) => value.unwrap_or(false),
+            Err(_) => false,
+        }
     }
 
     pub fn maybe_symbol_matching_any(&mut self, expected: &[&str]) -> Option<String> {
@@ -461,25 +531,53 @@ impl Parser {
 //     s.append_many("properties", &self.properties);
 //     s.append_many("units", &self.units);
 // })
+
+// The KiCad file spec has evolved over time, and some serialization tasks require detecting these
+// quirks for 1:1 file recreation. This struct allows us to pass important metadata from the top
+// level (where detection usually happens) to child structs.
+#[derive(Debug, Clone, Copy)]
+pub struct SerializationContext {
+    pub uuids_as_strings: bool,
+    pub explicit_booleans: bool,
+}
+
+impl SerializationContext {
+    pub fn pre_v8() -> Self {
+        Self {
+            uuids_as_strings: false,
+            explicit_booleans: false,
+        }
+    }
+}
+
+impl Default for SerializationContext {
+    fn default() -> Self {
+        SerializationContext {
+            uuids_as_strings: true,
+            explicit_booleans: true,
+        }
+    }
+}
+
 pub trait ToSexpr {
-    fn to_sexpr(&self) -> Sexpr;
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr;
 }
 
 pub trait ToSexprWithName {
-    fn to_sexpr_with_name(&self, name: &str) -> Sexpr;
+    fn to_sexpr_with_name(&self, name: &str, context: SerializationContext) -> Sexpr;
 }
 
 pub trait VecToMaybeSexprVec {
-    fn into_sexpr_vec(self) -> Vec<Option<Sexpr>>;
+    fn into_sexpr_vec(self, context: SerializationContext) -> Vec<Option<Sexpr>>;
 }
 
 impl<T> VecToMaybeSexprVec for &[T]
 where
     T: ToSexpr,
 {
-    fn into_sexpr_vec(self) -> Vec<Option<Sexpr>> {
+    fn into_sexpr_vec(self, context: SerializationContext) -> Vec<Option<Sexpr>> {
         self.iter()
-            .map(ToSexpr::to_sexpr)
+            .map(|i| i.to_sexpr(context))
             .map(Option::Some)
             .collect()
     }

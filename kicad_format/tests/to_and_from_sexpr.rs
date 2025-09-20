@@ -1,7 +1,7 @@
 use std::path::Path;
 
 use kicad_format::{
-    convert::{FromSexpr, Parser, ToSexpr},
+    convert::{FromSexpr, Parser, SerializationContext, ToSexpr},
     footprint_library::FootprintLibraryFile,
     netlist::NetlistFile,
     pcb::PcbFile,
@@ -41,7 +41,7 @@ fn assert_in_out_eq<T: FromSexpr + ToSexpr>(input: &str, path: &Path) {
     let pcb = T::from_sexpr(parser)
         .unwrap_or_else(|e| panic!("Failed to parse file: {}\n{e}\n{e:?}", path.display()));
 
-    let output_sexpr = pcb.to_sexpr();
+    let output_sexpr = pcb.to_sexpr(SerializationContext::pre_v8());
 
     assert_sexprs_eq(input_sexpr, output_sexpr);
 }
@@ -76,6 +76,11 @@ fn test_symbol_library() {
 #[test]
 fn test_schematic() {
     test_files_in_dir::<SchematicFile, _>("./tests/schematic")
+}
+
+#[test]
+fn test_pre_v8_schematic() {
+    test_files_in_dir::<SchematicFile, _>("./tests/schematic/pre_v8")
 }
 
 #[test]

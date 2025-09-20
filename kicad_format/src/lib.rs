@@ -1,5 +1,5 @@
 use common::LayerId;
-use convert::{FromSexpr, Parser, ToSexpr};
+use convert::{FromSexpr, Parser, SerializationContext, ToSexpr};
 use footprint_library::FootprintLibraryFile;
 use kicad_sexpr::Sexpr;
 use netlist::NetlistFile;
@@ -147,7 +147,7 @@ fn parse_file<T: FromSexpr>(input: &str) -> Result<T, KiCadParseError> {
 }
 
 fn serialize_file<T: ToSexpr>(file: T) -> String {
-    let sexpr = file.to_sexpr();
+    let sexpr = file.to_sexpr(SerializationContext::default());
 
     kicad_sexpr::to_string(&sexpr)
 }

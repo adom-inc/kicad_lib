@@ -11,7 +11,7 @@ use crate::{
         symbol::{LibraryId, SymbolProperty},
         Position, Uuid,
     },
-    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, VecToMaybeSexprVec},
+    convert::{FromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr, VecToMaybeSexprVec},
     simple_maybe_from_sexpr, KiCadParseError,
 };
 
@@ -29,6 +29,7 @@ pub struct Symbol {
     pub position: Position,
     pub mirror: Option<Mirror>,
     pub unit: u16,
+    pub exclude_from_sim: Option<bool>,
     pub convert: Option<SymbolConversion>,
     pub in_bom: bool,
     pub on_board: bool,
@@ -51,6 +52,7 @@ impl FromSexpr for Symbol {
         let position = parser.expect::<Position>()?;
         let mirror = parser.maybe::<Mirror>()?;
         let unit = parser.expect_number_with_name("unit")? as u16;
+        let exclude_from_sim = parser.maybe_bool_with_name("exclude_from_sim")?;
         let convert = parser
             .maybe_number_with_name("convert")?
             .map(|c| c as u8)
@@ -59,7 +61,7 @@ impl FromSexpr for Symbol {
         let in_bom = parser.expect_bool_with_name("in_bom")?;
         let on_board = parser.expect_bool_with_name("on_board")?;
         let dnp = parser.expect_bool_with_name("dnp")?;
-        let fields_autoplaced = parser.maybe_empty_list_with_name("fields_autoplaced")?;
+        let fields_autoplaced = parser.maybe_symbol_with_optional_boolean("fields_autoplaced");
         let uuid = parser.expect::<Uuid>()?;
         let properties = parser.expect_many::<SymbolProperty>()?;
         let pins = parser.expect_many::<Pin>()?;
@@ -81,6 +83,7 @@ impl FromSexpr for Symbol {
             position,
             mirror,
             unit,
+            exclude_from_sim,
             convert,
             in_bom,
             on_board,
@@ -97,7 +100,29 @@ impl FromSexpr for Symbol {
 simple_maybe_from_sexpr!(Symbol, symbol);
 
 impl ToSexpr for Symbol {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
+        // Around v8, a normalization effort took place and many core fields are serialized
+        // differently. The existence of the `exclude_from_sim` field is a signal that we're
+        // working with the updated format, and can follow those rules instead.
+        let is_normalized = self.exclude_from_sim.is_some();
+        let context = if is_normalized {
+            SerializationContext::default()
+        } else {
+            SerializationContext::pre_v8()
+        };
+
+        let exclude_from_sim = self
+            .exclude_from_sim
+            .map(|value| Sexpr::bool_with_name("exclude_from_sim", value));
+
+        let fields_autoplaced = if context.explicit_booleans {
+            self.fields_autoplaced
+                .then(|| Sexpr::bool_with_name("fields_autoplaced", self.fields_autoplaced))
+        } else {
+            self.fields_autoplaced
+                .then(|| Sexpr::list_with_name("fields_autoplaced", []))
+        };
+
         Sexpr::list_with_name(
             "symbol",
             [
@@ -107,29 +132,29 @@ impl ToSexpr for Symbol {
                         .map(|n| Sexpr::string_with_name("lib_name", n)),
                     Some(Sexpr::list_with_name(
                         "lib_id",
-                        [Some(self.lib_id.to_sexpr())],
+                        [Some(self.lib_id.to_sexpr(context))],
                     )),
-                    Some(self.position.to_sexpr()),
+                    Some(self.position.to_sexpr(context)),
                     self.mirror
                         .as_ref()
                         .filter(|m| m.x || m.y)
-                        .map(ToSexpr::to_sexpr),
+                        .map(|i| i.to_sexpr(context)),
                     Some(Sexpr::number_with_name("unit", self.unit as f32)),
                     self.convert
                         .map(|c| Sexpr::number_with_name("convert", c as u8 as f32)),
+                    exclude_from_sim,
                     Some(Sexpr::bool_with_name("in_bom", self.in_bom)),
                     Some(Sexpr::bool_with_name("on_board", self.on_board)),
                     Some(Sexpr::bool_with_name("dnp", self.dnp)),
-                    self.fields_autoplaced
-                        .then(|| Sexpr::list_with_name("fields_autoplaced", [])),
-                    Some(self.uuid.to_sexpr()),
+                    fields_autoplaced,
+                    Some(self.uuid.to_sexpr(context)),
                 ][..],
-                &self.properties.into_sexpr_vec(),
-                &self.pins.into_sexpr_vec(),
+                &self.properties.into_sexpr_vec(context),
+                &self.pins.into_sexpr_vec(context),
                 &[self
                     .instances
                     .as_ref()
-                    .map(|i| Sexpr::list_with_name("instances", i.into_sexpr_vec()))][..],
+                    .map(|i| Sexpr::list_with_name("instances", i.into_sexpr_vec(context)))][..],
             ]
             .concat(),
         )
@@ -160,7 +185,7 @@ impl FromSexpr for Mirror {
 simple_maybe_from_sexpr!(Mirror, mirror);
 
 impl ToSexpr for Mirror {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "mirror",
             [
@@ -224,12 +249,12 @@ impl FromSexpr for Pin {
 simple_maybe_from_sexpr!(Pin, pin);
 
 impl ToSexpr for Pin {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "pin",
             [
                 Some(Sexpr::string(&self.number)),
-                Some(self.uuid.to_sexpr()),
+                Some(self.uuid.to_sexpr(context)),
                 self.alternate
                     .as_ref()
                     .map(|a| Sexpr::string_with_name("alternate", a)),
@@ -263,12 +288,12 @@ impl FromSexpr for SymbolInstanceProject {
 simple_maybe_from_sexpr!(SymbolInstanceProject, project);
 
 impl ToSexpr for SymbolInstanceProject {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "project",
             [
                 &[Some(Sexpr::string(&self.project))][..],
-                &self.instances.into_sexpr_vec(),
+                &self.instances.into_sexpr_vec(context),
             ]
             .concat(),
         )
@@ -305,7 +330,7 @@ impl FromSexpr for SymbolInstance {
 simple_maybe_from_sexpr!(SymbolInstance, path);
 
 impl ToSexpr for SymbolInstance {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "path",
             [

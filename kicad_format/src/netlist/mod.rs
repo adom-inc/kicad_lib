@@ -7,7 +7,7 @@
 use kicad_sexpr::{Sexpr, SexprList};
 
 use crate::{
-    convert::{FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr},
+    convert::{FromSexpr, MaybeFromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr},
     KiCadParseError,
 };
 
@@ -71,17 +71,17 @@ impl FromSexpr for NetlistFile {
 }
 
 impl ToSexpr for NetlistFile {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "export",
             [
                 Some(Sexpr::string_with_name("version", &self.version)),
-                Some(self.design.to_sexpr()),
+                Some(self.design.to_sexpr(context)),
                 Some(Sexpr::list_with_name(
                     "components",
                     self.components
                         .iter()
-                        .map(ToSexpr::to_sexpr)
+                        .map(|i| i.to_sexpr(context))
                         .map(Some)
                         .collect::<Vec<_>>(),
                 )),
@@ -89,7 +89,7 @@ impl ToSexpr for NetlistFile {
                     "libparts",
                     self.libparts
                         .iter()
-                        .map(ToSexpr::to_sexpr)
+                        .map(|i| i.to_sexpr(context))
                         .map(Some)
                         .collect::<Vec<_>>(),
                 )),
@@ -97,7 +97,7 @@ impl ToSexpr for NetlistFile {
                     "libraries",
                     self.libraries
                         .iter()
-                        .map(ToSexpr::to_sexpr)
+                        .map(|i| i.to_sexpr(context))
                         .map(Some)
                         .collect::<Vec<_>>(),
                 )),
@@ -105,7 +105,7 @@ impl ToSexpr for NetlistFile {
                     "nets",
                     self.nets
                         .iter()
-                        .map(ToSexpr::to_sexpr)
+                        .map(|i| i.to_sexpr(context))
                         .map(Some)
                         .collect::<Vec<_>>(),
                 )),
@@ -150,7 +150,7 @@ impl FromSexpr for Design {
 }
 
 impl ToSexpr for Design {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "design",
             [
@@ -159,7 +159,7 @@ impl ToSexpr for Design {
                 Some(Sexpr::string_with_name("tool", &self.tool)),
             ]
             .into_iter()
-            .chain(self.sheets.iter().map(|s| Some(s.to_sexpr())))
+            .chain(self.sheets.iter().map(|s| Some(s.to_sexpr(context))))
             .collect::<Vec<_>>(),
         )
     }
@@ -209,7 +209,7 @@ impl FromSexpr for Sheet {
 }
 
 impl ToSexpr for Sheet {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "sheet",
             [
@@ -222,7 +222,7 @@ impl ToSexpr for Sheet {
                         .map(|s| Some(Sexpr::string(s)))
                         .collect::<Vec<_>>(),
                 )),
-                Some(self.title_block.to_sexpr()),
+                Some(self.title_block.to_sexpr(context)),
             ],
         )
     }
@@ -272,7 +272,7 @@ impl FromSexpr for TitleBlock {
 }
 
 impl ToSexpr for TitleBlock {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "title_block",
             [
@@ -307,7 +307,7 @@ impl ToSexpr for TitleBlock {
                 Some(Sexpr::string_with_name("source", &self.source)),
             ]
             .into_iter()
-            .chain(self.comments.iter().map(|c| Some(c.to_sexpr())))
+            .chain(self.comments.iter().map(|c| Some(c.to_sexpr(context))))
             .collect::<Vec<_>>(),
         )
     }
@@ -344,7 +344,7 @@ impl FromSexpr for Comment {
 }
 
 impl ToSexpr for Comment {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "comment",
             [
@@ -423,7 +423,7 @@ impl FromSexpr for Component {
 }
 
 impl ToSexpr for Component {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "comp",
             [
@@ -438,13 +438,13 @@ impl ToSexpr for Component {
                 self.description
                     .as_ref()
                     .map(|d| Sexpr::string_with_name("description", d)),
-                Some(self.fields.to_sexpr()),
-                Some(self.libsource.to_sexpr()),
+                Some(self.fields.to_sexpr(context)),
+                Some(self.libsource.to_sexpr(context)),
             ]
             .into_iter()
-            .chain(self.properties.iter().map(|p| Some(p.to_sexpr())))
+            .chain(self.properties.iter().map(|p| Some(p.to_sexpr(context))))
             .chain([
-                Some(self.sheetpath.to_sexpr()),
+                Some(self.sheetpath.to_sexpr(context)),
                 Some(Sexpr::list_with_name(
                     "tstamps",
                     self.tstamps
@@ -489,7 +489,7 @@ impl FromSexpr for SheetPath {
 }
 
 impl ToSexpr for SheetPath {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "sheetpath",
             [
@@ -532,7 +532,7 @@ impl FromSexpr for LibSource {
 }
 
 impl ToSexpr for LibSource {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "libsource",
             [
@@ -575,7 +575,7 @@ impl FromSexpr for Property {
 }
 
 impl ToSexpr for Property {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "property",
             [
@@ -662,7 +662,7 @@ impl FromSexpr for LibPart {
 }
 
 impl ToSexpr for LibPart {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "libpart",
             [
@@ -678,7 +678,7 @@ impl ToSexpr for LibPart {
                     Sexpr::list_with_name(
                         "footprints",
                         f.iter()
-                            .map(ToSexpr::to_sexpr)
+                            .map(|i| i.to_sexpr(context))
                             .map(Some)
                             .collect::<Vec<_>>(),
                     )
@@ -687,7 +687,7 @@ impl ToSexpr for LibPart {
                     "fields",
                     self.fields
                         .iter()
-                        .map(ToSexpr::to_sexpr)
+                        .map(|i| i.to_sexpr(context))
                         .map(Some)
                         .collect::<Vec<_>>(),
                 )),
@@ -695,7 +695,7 @@ impl ToSexpr for LibPart {
                     Sexpr::list_with_name(
                         "pins",
                         pins.iter()
-                            .map(ToSexpr::to_sexpr)
+                            .map(|i| i.to_sexpr(context))
                             .map(Some)
                             .collect::<Vec<_>>(),
                     )
@@ -727,12 +727,12 @@ impl FromSexpr for Fields {
 }
 
 impl ToSexpr for Fields {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "fields",
             self.fields
                 .iter()
-                .map(ToSexpr::to_sexpr)
+                .map(|i| i.to_sexpr(context))
                 .map(Some)
                 .collect::<Vec<_>>(),
         )
@@ -770,7 +770,7 @@ impl FromSexpr for Field {
 }
 
 impl ToSexpr for Field {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "field",
             [
@@ -815,7 +815,7 @@ impl FromSexpr for Pin {
 }
 
 impl ToSexpr for Pin {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "pin",
             [
@@ -857,7 +857,7 @@ impl FromSexpr for Library {
 }
 
 impl ToSexpr for Library {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "library",
             [
@@ -896,7 +896,7 @@ impl FromSexpr for Footprint {
 }
 
 impl ToSexpr for Footprint {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name("fp", [Some(Sexpr::string(&self.name))])
     }
 }
@@ -935,7 +935,7 @@ impl FromSexpr for Net {
 }
 
 impl ToSexpr for Net {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "net",
             [
@@ -943,7 +943,7 @@ impl ToSexpr for Net {
                 Some(Sexpr::string_with_name("name", &self.name)),
             ]
             .into_iter()
-            .chain(self.nodes.iter().map(|n| Some(n.to_sexpr())))
+            .chain(self.nodes.iter().map(|n| Some(n.to_sexpr(context))))
             .collect::<Vec<_>>(),
         )
     }
@@ -991,7 +991,7 @@ impl FromSexpr for Node {
 }
 
 impl ToSexpr for Node {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, _context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "node",
             [

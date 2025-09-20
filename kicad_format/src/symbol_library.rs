@@ -4,7 +4,7 @@ use kicad_sexpr::Sexpr;
 
 use crate::{
     common::symbol::{LibSymbol, LibraryId, SymbolProperty},
-    convert::{FromSexpr, Parser, SexprListExt, ToSexpr, VecToMaybeSexprVec},
+    convert::{FromSexpr, Parser, SerializationContext, SexprListExt, ToSexpr, VecToMaybeSexprVec},
     simple_maybe_from_sexpr, KiCadParseError,
 };
 
@@ -42,7 +42,7 @@ impl FromSexpr for SymbolLibraryFile {
 }
 
 impl ToSexpr for SymbolLibraryFile {
-    fn to_sexpr(&self) -> kicad_sexpr::Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> kicad_sexpr::Sexpr {
         Sexpr::list_with_name(
             "kicad_symbol_lib",
             [
@@ -50,7 +50,7 @@ impl ToSexpr for SymbolLibraryFile {
                     Some(Sexpr::number_with_name("version", self.version as f32)),
                     Some(Sexpr::symbol_with_name("generator", &self.generator)),
                 ][..],
-                &self.symbols.into_sexpr_vec(),
+                &self.symbols.into_sexpr_vec(context),
             ]
             .concat(),
         )
@@ -93,10 +93,10 @@ impl FromSexpr for SymbolDefinition {
 simple_maybe_from_sexpr!(SymbolDefinition, symbol);
 
 impl ToSexpr for SymbolDefinition {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         match self {
-            Self::RootSymbol(symbol) => symbol.to_sexpr(),
-            Self::DerivedSymbol(symbol) => symbol.to_sexpr(),
+            Self::RootSymbol(symbol) => symbol.to_sexpr(context),
+            Self::DerivedSymbol(symbol) => symbol.to_sexpr(context),
         }
     }
 }
@@ -131,15 +131,15 @@ impl FromSexpr for DerivedLibSymbol {
 }
 
 impl ToSexpr for DerivedLibSymbol {
-    fn to_sexpr(&self) -> Sexpr {
+    fn to_sexpr(&self, context: SerializationContext) -> Sexpr {
         Sexpr::list_with_name(
             "symbol",
             [
                 &[
-                    Some(self.id.to_sexpr()),
+                    Some(self.id.to_sexpr(context)),
                     Some(Sexpr::string_with_name("extends", &self.extends)),
                 ][..],
-                &self.properties.into_sexpr_vec(),
+                &self.properties.into_sexpr_vec(context),
             ]
             .concat(),
         )
