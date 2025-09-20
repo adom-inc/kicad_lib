@@ -7630,6 +7630,12 @@
 					(unit 1)
 				)
 			)
+			(project "muxdata"
+				(path "/d96e0c20-ddfb-4717-a7fd-1bc17ad9dff3/aed59d03-d754-47ad-a9c5-dfdf34075805"
+					(reference "U?")
+					(unit 1)
+				)
+			)
 			(project "video"
 				(path "/f54f2c44-70ae-46db-88a1-bf696c289e90/00000000-0000-0000-0000-00004bf0367d"
 					(reference "U22")
@@ -7696,6 +7702,12 @@
 		(instances
 			(project "muxdata"
 				(path "/39bf5ddc-d073-496b-8d93-14dacb63ae69"
+					(reference "#PWR?")
+					(unit 1)
+				)
+			)
+			(project "muxdata"
+				(path "/d96e0c20-ddfb-4717-a7fd-1bc17ad9dff3/aed59d03-d754-47ad-a9c5-dfdf34075805"
 					(reference "#PWR?")
 					(unit 1)
 				)
@@ -7827,6 +7839,12 @@
 					(unit 1)
 				)
 			)
+			(project "muxdata"
+				(path "/d96e0c20-ddfb-4717-a7fd-1bc17ad9dff3/aed59d03-d754-47ad-a9c5-dfdf34075805"
+					(reference "U?")
+					(unit 1)
+				)
+			)
 			(project "video"
 				(path "/f54f2c44-70ae-46db-88a1-bf696c289e90/00000000-0000-0000-0000-00004bf0367d"
 					(reference "U3")
@@ -7954,6 +7972,12 @@
 					(unit 1)
 				)
 			)
+			(project "muxdata"
+				(path "/d96e0c20-ddfb-4717-a7fd-1bc17ad9dff3/aed59d03-d754-47ad-a9c5-dfdf34075805"
+					(reference "U?")
+					(unit 1)
+				)
+			)
 			(project "video"
 				(path "/f54f2c44-70ae-46db-88a1-bf696c289e90/00000000-0000-0000-0000-00004bf0367d"
 					(reference "U6")
@@ -8076,6 +8100,12 @@
 		(instances
 			(project "muxdata"
 				(path "/39bf5ddc-d073-496b-8d93-14dacb63ae69"
+					(reference "U?")
+					(unit 1)
+				)
+			)
+			(project "muxdata"
+				(path "/d96e0c20-ddfb-4717-a7fd-1bc17ad9dff3/aed59d03-d754-47ad-a9c5-dfdf34075805"
 					(reference "U?")
 					(unit 1)
 				)
@@ -8207,6 +8237,12 @@
 					(unit 1)
 				)
 			)
+			(project "muxdata"
+				(path "/d96e0c20-ddfb-4717-a7fd-1bc17ad9dff3/aed59d03-d754-47ad-a9c5-dfdf34075805"
+					(reference "U?")
+					(unit 1)
+				)
+			)
 			(project "video"
 				(path "/f54f2c44-70ae-46db-88a1-bf696c289e90/00000000-0000-0000-0000-00004bf0367d"
 					(reference "U4")
@@ -8273,6 +8309,12 @@
 		(instances
 			(project "muxdata"
 				(path "/39bf5ddc-d073-496b-8d93-14dacb63ae69"
+					(reference "#PWR?")
+					(unit 1)
+				)
+			)
+			(project "muxdata"
+				(path "/d96e0c20-ddfb-4717-a7fd-1bc17ad9dff3/aed59d03-d754-47ad-a9c5-dfdf34075805"
 					(reference "#PWR?")
 					(unit 1)
 				)
@@ -8347,6 +8389,12 @@
 					(unit 1)
 				)
 			)
+			(project "muxdata"
+				(path "/d96e0c20-ddfb-4717-a7fd-1bc17ad9dff3/aed59d03-d754-47ad-a9c5-dfdf34075805"
+					(reference "#PWR?")
+					(unit 1)
+				)
+			)
 			(project "video"
 				(path "/f54f2c44-70ae-46db-88a1-bf696c289e90/00000000-0000-0000-0000-00004bf0367d"
 					(reference "#PWR0102")
@@ -8355,10 +8403,4 @@
 			)
 		)
 	)
-	(sheet_instances
-		(path "/"
-			(page "1")
-		)
-	)
-	(embedded_fonts no)
 )

@@ -6782,13 +6782,13 @@
 		)
 		(pin "OE_PAL-" output
 			(at 224.79 81.28 0)
-			(uuid "12f7c272-cc70-4289-ab00-a8083626d567")
 			(effects
 				(font
 					(size 1.524 1.524)
 				)
 				(justify right)
 			)
+			(uuid "12f7c272-cc70-4289-ab00-a8083626d567")
 		)
 		(instances
 			(project "video"
