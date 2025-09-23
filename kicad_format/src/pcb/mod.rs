@@ -674,7 +674,7 @@ impl FromSexpr for TrackVia {
         })?;
         let remove_unused_layers = parser.maybe_empty_list_with_name("remove_unused_layers")?;
         let keep_end_layers = parser.maybe_empty_list_with_name("keep_end_layers")?;
-        let free = parser.maybe_empty_list_with_name("free")?;
+        let free = parser.maybe_bool_with_name("free")?;
         let zone_layer_connections = parser
             .maybe_list_with_name("zone_layer_connections")
             .map(|mut p| {
@@ -735,7 +735,8 @@ impl ToSexpr for TrackVia {
                     .then(|| Sexpr::list_with_name("remove_unused_layers", [])),
                 self.keep_end_layers
                     .then(|| Sexpr::list_with_name("keep_end_layers", [])),
-                self.free.then(|| Sexpr::list_with_name("free", [])),
+                self.free
+                    .then(|| Sexpr::bool_with_name("free", self.free)),
                 self.zone_layer_connections.as_ref().map(|layers| {
                     Sexpr::list_with_name(
                         "zone_layer_connections",

@@ -28,6 +28,7 @@ pub struct Zone {
     pub min_thickness: f32,
     pub filled_areas_thickness: bool,
     pub keep_out_settings: Option<KeepOutSettings>,
+    pub placement_settings: Option<PlacementSettings>,
     pub fill_settings: FillSettings,
     pub polygon: Option<CoordinatePointList>,
     pub fill_polygons: Vec<FilledPolygon>,
@@ -101,6 +102,7 @@ impl FromSexpr for Zone {
         let min_thickness = parser.expect_number_with_name("min_thickness")?;
         let filled_areas_thickness = parser.expect_bool_with_name("filled_areas_thickness")?;
         let keep_out_settings = parser.maybe::<KeepOutSettings>()?;
+        let placement_settings = parser.maybe::<PlacementSettings>()?;
         let fill_settings = parser.expect::<FillSettings>()?;
         let polygon = parser
             .maybe_list_with_name("polygon")
@@ -127,6 +129,7 @@ impl FromSexpr for Zone {
             min_thickness,
             filled_areas_thickness,
             keep_out_settings,
+            placement_settings,
             fill_settings,
             polygon,
             fill_polygons,
@@ -189,6 +192,7 @@ impl ToSexpr for Zone {
                         },
                     )),
                     self.keep_out_settings.as_ref().map(ToSexpr::to_sexpr),
+                    self.placement_settings.as_ref().map(ToSexpr::to_sexpr),
                     Some(self.fill_settings.to_sexpr()),
                     self.polygon
                         .as_ref()
@@ -379,6 +383,62 @@ simple_to_from_string! {
     KeepOut,
     allowed <-> Allowed,
     not_allowed <-> NotAllowed,
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[derive(Debug, PartialEq, Clone)]
+pub struct PlacementSettings {
+    pub enabled: bool,
+    pub source: RuleAreaPlacementSourceKind,
+}
+
+impl FromSexpr for PlacementSettings {
+    fn from_sexpr(mut parser: Parser) -> Result<Self, KiCadParseError> {
+        parser.expect_symbol_matching("placement")?;
+
+        let enabled = parser.expect_bool_with_name("enabled")?;
+
+        let source = if let Some(s) = parser.maybe_string_with_name("sheetname")? {
+            RuleAreaPlacementSourceKind::SheetName(s)
+        } else if let Some(s) = parser.maybe_string_with_name("component_class")? {
+            RuleAreaPlacementSourceKind::SheetName(s)
+        } else {
+            return Err(KiCadParseError::ExpectedField);
+        };
+
+        parser.expect_end()?;
+
+        Ok(Self { enabled, source })
+    }
+}
+
+simple_maybe_from_sexpr!(PlacementSettings, placement);
+
+impl ToSexpr for PlacementSettings {
+    fn to_sexpr(&self) -> Sexpr {
+        Sexpr::list_with_name(
+            "placement",
+            [
+                Some(Sexpr::bool_with_name("enabled", self.enabled)),
+                Some(match &self.source {
+                    RuleAreaPlacementSourceKind::SheetName(s) => Sexpr::string_with_name("sheetname", s),
+                    RuleAreaPlacementSourceKind::ComponentClass(s) => Sexpr::string_with_name("component_class", s),
+                }),
+            ],
+        )
+    }
+}
+
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(
+    feature = "serde",
+    serde(rename_all = "snake_case", tag = "type", content = "value")
+)]
+#[derive(Debug, PartialEq, Clone)]
+pub enum RuleAreaPlacementSourceKind {
+    SheetName(String),
+    ComponentClass(String),
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]

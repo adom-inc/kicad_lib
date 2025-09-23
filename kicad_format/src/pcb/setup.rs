@@ -82,6 +82,7 @@ impl ToSexpr for BoardSetup {
                     "allow_soldermask_bridges_in_footprints",
                     self.allow_soldermask_bridges_in_footprints,
                 )),
+                Some(self.tenting.to_sexpr()),
                 self.aux_axis_origin
                     .as_ref()
                     .map(|a| a.to_sexpr_with_name("aux_axis_origin")),
@@ -375,14 +376,14 @@ pub struct PcbPlotOptions {
     /// Set of layers to plot
     ///
     /// FIXME: update to use layer set/mask
-    pub layer_selection: u64,
+    pub layer_selection: u128,
     /// Honestly no idea what this does
     ///
     /// Code says this:
     /// > "Set of layers that get plotted on each of the layers to plot."
     ///
     /// FIXME: update to use layer set/mask
-    pub plot_on_all_layers_selection: u64,
+    pub plot_on_all_layers_selection: u128,
 
     /// Disable aperture macros in Gerber format (only for broken Gerber readers)
     /// Ideally, should be never selected
@@ -731,20 +732,22 @@ impl ToSexpr for PcbPlotOptions {
     }
 }
 
-fn parse_bit_field(raw: &str) -> Result<u64, KiCadParseError> {
+fn parse_bit_field(raw: &str) -> Result<u128, KiCadParseError> {
     let stripped = raw.trim_start_matches("0x").replace('_', "");
 
-    u64::from_str_radix(&stripped, 16).map_err(|e| KiCadParseError::InvalidLayerBitField {
+    u128::from_str_radix(&stripped, 16).map_err(|e| KiCadParseError::InvalidLayerBitField {
         raw: raw.to_string(),
         error: e,
     })
 }
 
-fn assemble_bit_field(bit_field: u64) -> String {
-    let low = bit_field as u32;
-    let high = (bit_field >> 32) as u32;
+fn assemble_bit_field(bit_field: u128) -> String {
+    let bits0 = bit_field as u32;
+    let bits1 = (bit_field >> 32) as u32;
+    let bits2 = (bit_field >> 64) as u32;
+    let bits3 = (bit_field >> 96) as u32;
 
-    format!("0x{:0>7x}_{:0>8x}", high, low)
+    format!("0x{:0>8x}_{:0>8x}_{:0>8x}_{:0>8x}", bits3, bits2, bits1, bits0)
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
