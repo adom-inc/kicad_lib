@@ -52,6 +52,7 @@ pub struct FootprintInlined {
     pub pads: Vec<Pad>,
     pub keep_out_zones: Vec<Zone>,
     pub groups: Vec<Group>,
+    pub embedded_fonts: bool,
     pub models: Vec<Model>,
 }
 
@@ -204,6 +205,7 @@ impl FromSexpr for FootprintInlined {
         let pads = parser.expect_many::<Pad>()?;
         let keep_out_zones = parser.expect_many::<Zone>()?;
         let groups = parser.expect_many::<Group>()?;
+        let embedded_fonts = parser.expect_bool_with_name("embedded_fonts")?;
         let models = parser.expect_many::<Model>()?;
 
         parser.expect_end()?;
@@ -233,6 +235,7 @@ impl FromSexpr for FootprintInlined {
             pads,
             keep_out_zones,
             groups,
+            embedded_fonts,
             models,
         })
     }
@@ -306,6 +309,10 @@ impl ToSexpr for FootprintInlined {
                 self.pads.into_sexpr_vec(),
                 self.keep_out_zones.into_sexpr_vec(),
                 self.groups.into_sexpr_vec(),
+                vec![Some(Sexpr::bool_with_name(
+                    "embedded_fonts",
+                    self.embedded_fonts,
+                ))],
                 self.models.into_sexpr_vec(),
             ]
             .concat(),
@@ -506,8 +513,7 @@ impl ToSexpr for FootprintAttributes {
                     .then(|| Sexpr::symbol("exclude_from_bom")),
                 self.allow_missing_courtyard
                     .then(|| Sexpr::symbol("allow_missing_courtyard")),
-                self.do_not_populate
-                    .then(|| Sexpr::symbol("dnp")),
+                self.do_not_populate.then(|| Sexpr::symbol("dnp")),
                 self.allow_solder_mask_bridges
                     .then(|| Sexpr::symbol("allow_soldermask_bridges")),
             ],

@@ -11,6 +11,7 @@ use crate::{
         FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName,
         VecToMaybeSexprVec,
     },
+    pcb::setup::Tenting,
     simple_maybe_from_sexpr, simple_to_from_string, KiCadParseError, SexprKind,
 };
 
@@ -47,6 +48,7 @@ pub struct PcbFile {
     pub zones: Vec<Zone>,
     pub groups: Vec<Group>,
     pub generators: Vec<PcbGenerator>,
+    pub embedded_fonts: bool,
 }
 
 impl Default for PcbFile {
@@ -232,6 +234,10 @@ impl Default for PcbFile {
                 pad_to_paste_clearance: None,
                 pad_to_paste_clearance_ratio: None,
                 allow_soldermask_bridges_in_footprints: false,
+                tenting: Tenting {
+                    front: false,
+                    back: false,
+                },
                 aux_axis_origin: None,
                 grid_origin: None,
                 plot_options: PcbPlotOptions {
@@ -247,7 +253,6 @@ impl Default for PcbFile {
                     dashed_line_gap_ratio: 3.0,
                     svg_precision: 4,
                     plot_frame_ref: false,
-                    vias_on_mask: false,
                     plot_mode: OutlineMode::Filled,
                     use_aux_origin: false,
                     hpgl_pen_number: 1,
@@ -255,16 +260,21 @@ impl Default for PcbFile {
                     hpgl_pen_diameter: 15.0,
                     pdf_front_fp_property_popups: true,
                     pdf_back_fp_property_popups: true,
+                    pdf_metadata: true,
+                    pdf_single_document: false,
                     dxf_use_polygon_mode: true,
                     dxf_use_imperial_units: true,
                     dxf_use_pcbnew_font: true,
                     postscript_negative: false,
                     postscript_a4_output: false,
-                    plot_references: true,
-                    plot_values: true,
-                    plot_fp_text: true,
-                    plot_invisible_text: false,
+
+                    plot_black_and_white: true,
                     sketch_pads_on_fab: false,
+                    plot_pad_numbers: false,
+                    hide_dnp_on_fab: false,
+                    sketch_dnp_on_fab: true,
+                    cross_out_dnp_on_fab: true,
+
                     subtract_mask_from_silk: false,
                     output_format: PlotFormat::Gerber,
                     mirror: false,
@@ -282,6 +292,7 @@ impl Default for PcbFile {
             zones: Vec::new(),
             groups: Vec::new(),
             generators: Vec::new(),
+            embedded_fonts: false,
         }
     }
 }
@@ -315,6 +326,11 @@ impl FromSexpr for PcbFile {
         let zones = parser.expect_many::<Zone>()?;
         let groups = parser.expect_many::<Group>()?;
         let generators = parser.expect_many::<PcbGenerator>()?;
+        let embedded_fonts = parser.expect_bool_with_name("embedded_fonts")?;
+
+        if embedded_fonts {
+            todo!("parse embedded fonts");
+        }
 
         parser.expect_end()?;
 
@@ -336,6 +352,7 @@ impl FromSexpr for PcbFile {
             zones,
             groups,
             generators,
+            embedded_fonts,
         })
     }
 }
@@ -370,6 +387,10 @@ impl ToSexpr for PcbFile {
                 &self.zones.into_sexpr_vec(),
                 &self.groups.into_sexpr_vec(),
                 &self.generators.into_sexpr_vec(),
+                &[Some(Sexpr::bool_with_name(
+                    "embedded_fonts",
+                    self.embedded_fonts,
+                ))][..],
             ]
             .concat(),
         )

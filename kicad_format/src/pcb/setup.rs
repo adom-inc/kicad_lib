@@ -22,6 +22,7 @@ pub struct BoardSetup {
     pub pad_to_paste_clearance: Option<f32>,
     pub pad_to_paste_clearance_ratio: Option<f32>,
     pub allow_soldermask_bridges_in_footprints: bool,
+    pub tenting: Tenting,
     pub aux_axis_origin: Option<Vec2D>,
     pub grid_origin: Option<Vec2D>,
     pub plot_options: PcbPlotOptions,
@@ -39,6 +40,7 @@ impl FromSexpr for BoardSetup {
             parser.maybe_number_with_name("pad_to_paste_clearance_ratio")?;
         let allow_soldermask_bridges_in_footprints =
             parser.expect_bool_with_name("allow_soldermask_bridges_in_footprints")?;
+        let tenting = parser.expect::<Tenting>()?;
         let aux_axis_origin = parser.maybe_with_name::<Vec2D>("aux_axis_origin")?;
         let grid_origin = parser.maybe_with_name::<Vec2D>("grid_origin")?;
         let plot_options = parser.expect::<PcbPlotOptions>()?;
@@ -52,6 +54,7 @@ impl FromSexpr for BoardSetup {
             pad_to_paste_clearance,
             pad_to_paste_clearance_ratio,
             allow_soldermask_bridges_in_footprints,
+            tenting,
             aux_axis_origin,
             grid_origin,
             plot_options,
@@ -318,6 +321,52 @@ simple_to_from_string! {
 
 // ############################################################################
 
+#[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
+#[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
+#[derive(Debug, PartialEq, Clone)]
+pub struct Tenting {
+    pub front: bool,
+    pub back: bool,
+}
+
+#[allow(deprecated)]
+impl FromSexpr for Tenting {
+    fn from_sexpr(mut parser: Parser) -> Result<Self, KiCadParseError> {
+        parser.expect_symbol_matching("tenting")?;
+
+        let (front, back) = if !parser.maybe_symbol_matching("none") {
+            let front = parser.maybe_symbol_matching("front");
+            let back = parser.maybe_symbol_matching("back");
+
+            (front, back)
+        } else {
+            (false, false)
+        };
+
+        parser.expect_end()?;
+
+        Ok(Self { front, back })
+    }
+}
+
+#[allow(deprecated)]
+impl ToSexpr for Tenting {
+    fn to_sexpr(&self) -> kicad_sexpr::Sexpr {
+        let values = if self.front || self.back {
+            vec![
+                self.front.then(|| Sexpr::symbol("front")),
+                self.back.then(|| Sexpr::symbol("back")),
+            ]
+        } else {
+            vec![Some(Sexpr::symbol("none"))]
+        };
+
+        Sexpr::list_with_name("tenting", values)
+    }
+}
+
+// ############################################################################
+
 /// Large field of settings that control how the PCB is plotted
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
 #[cfg_attr(feature = "serde", serde(rename_all = "snake_case"))]
@@ -363,8 +412,6 @@ pub struct PcbPlotOptions {
 
     /// Whether or not to plot/print frame references
     pub plot_frame_ref: bool,
-    /// True if vias are drawn on Mask layer (ie untented, *exposed* by mask)
-    pub vias_on_mask: bool,
     /// Filled or Sketch selects how to plot filled objects.
     ///
     /// Filled or Sketch not available with all drivers: some have fixed mode
@@ -386,6 +433,8 @@ pub struct PcbPlotOptions {
     pub pdf_front_fp_property_popups: bool,
     /// UNDOCUMENTED
     pub pdf_back_fp_property_popups: bool,
+    pub pdf_metadata: bool,
+    pub pdf_single_document: bool,
 
     /// DXF format: Plot items in outline (polygon) mode.
     ///
@@ -403,17 +452,14 @@ pub struct PcbPlotOptions {
     /// Auto-scale the plot to fit an A4 (landscape?) sheet
     pub postscript_a4_output: bool,
 
-    /// Enable plotting of part references
-    pub plot_references: bool,
-    /// Enable plotting of part values
-    pub plot_values: bool,
-    /// UNDOCUMENTED
-    pub plot_fp_text: bool,
-    /// Force plotting of fields marked invisible
-    pub plot_invisible_text: bool,
-
+    pub plot_black_and_white: bool,
     /// Plots pads outlines on fab layers
     pub sketch_pads_on_fab: bool,
+    pub plot_pad_numbers: bool,
+    pub hide_dnp_on_fab: bool,
+    pub sketch_dnp_on_fab: bool,
+    pub cross_out_dnp_on_fab: bool,
+
     /// On gerbers 'scrape' away the solder mask from silkscreen (trim silks)
     pub subtract_mask_from_silk: bool,
 
@@ -448,7 +494,6 @@ impl FromSexpr for PcbPlotOptions {
         let dashed_line_gap_ratio = parser.expect_number_with_name("dashed_line_gap_ratio")?;
         let svg_precision = parser.expect_number_with_name("svgprecision")? as u32;
         let plot_frame_ref = parser.expect_bool_with_name("plotframeref")?;
-        let vias_on_mask = parser.expect_bool_with_name("viasonmask")?;
         let plot_mode = parser
             .expect_number_with_name("mode")
             .map(|m| m as u8)
@@ -461,16 +506,21 @@ impl FromSexpr for PcbPlotOptions {
             parser.expect_bool_with_name("pdf_front_fp_property_popups")?;
         let pdf_back_fp_property_popups =
             parser.expect_bool_with_name("pdf_back_fp_property_popups")?;
+        let pdf_metadata = parser.expect_bool_with_name("pdf_metadata")?;
+        let pdf_single_document = parser.expect_bool_with_name("pdf_single_document")?;
         let dxf_use_polygon_mode = parser.expect_bool_with_name("dxfpolygonmode")?;
         let dxf_use_imperial_units = parser.expect_bool_with_name("dxfimperialunits")?;
         let dxf_use_pcbnew_font = parser.expect_bool_with_name("dxfusepcbnewfont")?;
         let postscript_negative = parser.expect_bool_with_name("psnegative")?;
         let postscript_a4_output = parser.expect_bool_with_name("psa4output")?;
-        let plot_references = parser.expect_bool_with_name("plotreference")?;
-        let plot_values = parser.expect_bool_with_name("plotvalue")?;
-        let plot_fp_text = parser.expect_bool_with_name("plotfptext")?;
-        let plot_invisible_text = parser.expect_bool_with_name("plotinvisibletext")?;
+
+        let plot_black_and_white = parser.expect_bool_with_name("plot_black_and_white")?;
         let sketch_pads_on_fab = parser.expect_bool_with_name("sketchpadsonfab")?;
+        let plot_pad_numbers = parser.expect_bool_with_name("plotpadnumbers")?;
+        let hide_dnp_on_fab = parser.expect_bool_with_name("hidednponfab")?;
+        let sketch_dnp_on_fab = parser.expect_bool_with_name("sketchdnponfab")?;
+        let cross_out_dnp_on_fab = parser.expect_bool_with_name("crossoutdnponfab")?;
+
         let subtract_mask_from_silk = parser.expect_bool_with_name("subtractmaskfromsilk")?;
         let output_format = parser
             .expect_number_with_name("outputformat")
@@ -499,7 +549,6 @@ impl FromSexpr for PcbPlotOptions {
             dashed_line_gap_ratio,
             svg_precision,
             plot_frame_ref,
-            vias_on_mask,
             plot_mode,
             use_aux_origin,
             hpgl_pen_number,
@@ -507,16 +556,19 @@ impl FromSexpr for PcbPlotOptions {
             hpgl_pen_diameter,
             pdf_front_fp_property_popups,
             pdf_back_fp_property_popups,
+            pdf_metadata,
+            pdf_single_document,
             dxf_use_polygon_mode,
             dxf_use_imperial_units,
             dxf_use_pcbnew_font,
             postscript_negative,
             postscript_a4_output,
-            plot_references,
-            plot_values,
-            plot_fp_text,
-            plot_invisible_text,
+            plot_black_and_white,
             sketch_pads_on_fab,
+            plot_pad_numbers,
+            hide_dnp_on_fab,
+            sketch_dnp_on_fab,
+            cross_out_dnp_on_fab,
             subtract_mask_from_silk,
             output_format,
             mirror,
@@ -576,7 +628,6 @@ impl ToSexpr for PcbPlotOptions {
                     self.svg_precision as f32,
                 )),
                 Some(Sexpr::bool_with_name("plotframeref", self.plot_frame_ref)),
-                Some(Sexpr::bool_with_name("viasonmask", self.vias_on_mask)),
                 Some(Sexpr::number_with_name(
                     "mode",
                     // Oh the joys of the KiCad file format :)
@@ -608,6 +659,11 @@ impl ToSexpr for PcbPlotOptions {
                     "pdf_back_fp_property_popups",
                     self.pdf_back_fp_property_popups,
                 )),
+                Some(Sexpr::bool_with_name("pdf_metadata", self.pdf_metadata)),
+                Some(Sexpr::bool_with_name(
+                    "pdf_single_document",
+                    self.pdf_single_document,
+                )),
                 Some(Sexpr::bool_with_name(
                     "dxfpolygonmode",
                     self.dxf_use_polygon_mode,
@@ -628,16 +684,26 @@ impl ToSexpr for PcbPlotOptions {
                     "psa4output",
                     self.postscript_a4_output,
                 )),
-                Some(Sexpr::bool_with_name("plotreference", self.plot_references)),
-                Some(Sexpr::bool_with_name("plotvalue", self.plot_values)),
-                Some(Sexpr::bool_with_name("plotfptext", self.plot_fp_text)),
                 Some(Sexpr::bool_with_name(
-                    "plotinvisibletext",
-                    self.plot_invisible_text,
+                    "plot_black_and_white",
+                    self.plot_black_and_white,
                 )),
                 Some(Sexpr::bool_with_name(
                     "sketchpadsonfab",
                     self.sketch_pads_on_fab,
+                )),
+                Some(Sexpr::bool_with_name(
+                    "plotpadnumbers",
+                    self.plot_pad_numbers,
+                )),
+                Some(Sexpr::bool_with_name("hidednponfab", self.hide_dnp_on_fab)),
+                Some(Sexpr::bool_with_name(
+                    "sketchdnponfab",
+                    self.sketch_dnp_on_fab,
+                )),
+                Some(Sexpr::bool_with_name(
+                    "crossoutdnponfab",
+                    self.cross_out_dnp_on_fab,
                 )),
                 Some(Sexpr::bool_with_name(
                     "subtractmaskfromsilk",

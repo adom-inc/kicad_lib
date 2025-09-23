@@ -1,7 +1,7 @@
 use kicad_sexpr::{Sexpr, SexprList};
 
 use crate::{
-    common::{CoordinatePointList, LayerId, SimpleFillMode, Stroke, Uuid, Vec2D},
+    common::{CoordinatePointList, LayerId, Stroke, Uuid, Vec2D},
     convert::{FromSexpr, MaybeFromSexpr, Parser, SexprListExt, ToSexpr, ToSexprWithName},
     KiCadParseError,
 };
@@ -28,13 +28,7 @@ impl PcbShape {
         }
     }
 
-    pub fn rectangle(
-        start: Vec2D,
-        end: Vec2D,
-        stroke: Stroke,
-        fill: SimpleFillMode,
-        layer: LayerId,
-    ) -> Self {
+    pub fn rectangle(start: Vec2D, end: Vec2D, stroke: Stroke, fill: bool, layer: LayerId) -> Self {
         Self {
             locked: false,
             kind: PcbShapeKind::Rectangle(PcbRectangle { start, end, fill }),
@@ -44,13 +38,7 @@ impl PcbShape {
         }
     }
 
-    pub fn circle(
-        center: Vec2D,
-        end: Vec2D,
-        stroke: Stroke,
-        fill: SimpleFillMode,
-        layer: LayerId,
-    ) -> Self {
+    pub fn circle(center: Vec2D, end: Vec2D, stroke: Stroke, fill: bool, layer: LayerId) -> Self {
         Self {
             locked: false,
             kind: PcbShapeKind::Circle(PcbCircle { center, end, fill }),
@@ -77,7 +65,7 @@ impl PcbShape {
     pub fn polygon(
         points: CoordinatePointList,
         stroke: Stroke,
-        fill: SimpleFillMode,
+        fill: bool,
         layer: LayerId,
     ) -> Self {
         Self {
@@ -138,10 +126,7 @@ impl FromSexpr for PcbShape {
                 let start = parser.expect_with_name::<Vec2D>("start")?;
                 let end = parser.expect_with_name::<Vec2D>("end")?;
                 let stroke = parser.expect::<Stroke>()?;
-                let fill = parser
-                    .expect_symbol_with_name("fill")?
-                    .parse::<SimpleFillMode>()?;
-
+                let fill = parser.expect_bool_with_name("fill")?;
                 (
                     PcbShapeKind::Rectangle(PcbRectangle { start, end, fill }),
                     stroke,
@@ -151,9 +136,7 @@ impl FromSexpr for PcbShape {
                 let center = parser.expect_with_name::<Vec2D>("center")?;
                 let end = parser.expect_with_name::<Vec2D>("end")?;
                 let stroke = parser.expect::<Stroke>()?;
-                let fill = parser
-                    .expect_symbol_with_name("fill")?
-                    .parse::<SimpleFillMode>()?;
+                let fill = parser.expect_bool_with_name("fill")?;
 
                 (
                     PcbShapeKind::Circle(PcbCircle { center, end, fill }),
@@ -178,9 +161,7 @@ impl FromSexpr for PcbShape {
             "gr_poly" => {
                 let points = parser.expect::<CoordinatePointList>()?;
                 let stroke = parser.expect::<Stroke>()?;
-                let fill = parser
-                    .expect_symbol_with_name("fill")?
-                    .parse::<SimpleFillMode>()?;
+                let fill = parser.expect_bool_with_name("fill")?;
 
                 (PcbShapeKind::Polygon(PcbPolygon { points, fill }), stroke)
             }
@@ -286,7 +267,7 @@ impl ToSexpr for PcbShape {
                 &elements.into_iter().map(Option::Some).collect::<Vec<_>>(),
                 &[
                     Some(self.stroke.to_sexpr()),
-                    fill.map(|f| Sexpr::symbol_with_name("fill", f)),
+                    fill.map(|f| Sexpr::bool_with_name("fill", f)),
                     Some(Sexpr::string_with_name("layer", self.layer)),
                     Some(self.uuid.to_sexpr()),
                 ][..],
@@ -310,7 +291,7 @@ pub struct PcbLine {
 pub struct PcbRectangle {
     pub start: Vec2D,
     pub end: Vec2D,
-    pub fill: SimpleFillMode,
+    pub fill: bool,
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -319,7 +300,7 @@ pub struct PcbRectangle {
 pub struct PcbCircle {
     pub center: Vec2D,
     pub end: Vec2D,
-    pub fill: SimpleFillMode,
+    pub fill: bool,
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
@@ -336,7 +317,7 @@ pub struct PcbArc {
 #[derive(Debug, PartialEq, Clone)]
 pub struct PcbPolygon {
     pub points: CoordinatePointList,
-    pub fill: SimpleFillMode,
+    pub fill: bool,
 }
 
 #[cfg_attr(feature = "serde", derive(serde::Serialize, serde::Deserialize))]
